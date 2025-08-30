@@ -3,11 +3,11 @@ version: '3.9'
 services:
   app:
     build:
-      context: ./docker/php        # ← ここをDockerfileのあるディレクトリに
-      dockerfile: Dockerfile       # ← 明示指定（任意だが可読性UP）
+      context: ./docker/php        # Dockerfile のあるディレクトリ
+      dockerfile: Dockerfile       # ← 明示的に指定
     container_name: php-app
     ports:
-      - "8088:80"
+      - "8080:80"                  # PHP/Apache → http://localhost:8080
     volumes:
       - ./src:/var/www/html
     depends_on:
@@ -29,13 +29,13 @@ services:
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
-    container_name: phpmyadmin8082
+    container_name: phpmyadmin8081
     environment:
       PMA_HOST: db
       PMA_USER: sample_user
       PMA_PASSWORD: sample_pass
     ports:
-      - "8082:80"
+      - "8081:80"                  # phpMyAdmin → http://localhost:8081
     depends_on:
       - db
 
