@@ -1,3 +1,6 @@
+# composer.jsonファイルを作る
+docker compose exec app composer int
+
 # vendor をホスト側(src/vendor)に生成する
 docker compose exec app composer install
 
