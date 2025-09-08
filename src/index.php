@@ -3,8 +3,19 @@
 declare(strict_types=1);
 
 use Slim\Factory\AppFactory;
+use Dotenv\Dotenv;
 
+// Composer autoload を必ず先頭で読み込み
 require __DIR__ . '/vendor/autoload.php';
+
+// .env 読み込み
+$dotenv = Dotenv::createImmutable(__DIR__);
+$dotenv->load();
+
+var_dump($_ENV);
+
+$appName = $_ENV['APP_NAME'] ?? 'NoName';
+error_log("App loaded: {$appName}");
 
 // Slim アプリ作成
 $app = AppFactory::create();

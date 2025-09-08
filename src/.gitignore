@@ -3,3 +3,5 @@
 
 # Composer lock file（必要に応じて）
 # composer.lock
+
+.env
