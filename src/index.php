@@ -21,6 +21,7 @@ $now = Carbon::now()->toDateTimeString();
 // === Monolog 設定 ===
 $log = new Logger('flashcard');
 // Docker の標準出力へ
+// docker compose logs -f app でログ確認可能
 $log->pushHandler(new StreamHandler('php://stdout', Logger::DEBUG));
 
 $log->info("App loaded", ['app' => $appName, 'time' => $now]);
