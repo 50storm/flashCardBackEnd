@@ -42,6 +42,10 @@ class ComposerStaticInit4a92c7dfd1fbf943be73b3e14765080d
             'Psr\\Clock\\' => 10,
             'PhpOption\\' => 10,
         ),
+        'M' => 
+        array (
+            'Monolog\\' => 8,
+        ),
         'G' => 
         array (
             'GrahamCampbell\\ResultType\\' => 26,
@@ -132,6 +136,10 @@ class ComposerStaticInit4a92c7dfd1fbf943be73b3e14765080d
         'PhpOption\\' => 
         array (
             0 => __DIR__ . '/..' . '/phpoption/phpoption/src/PhpOption',
+        ),
+        'Monolog\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/monolog/monolog/src/Monolog',
         ),
         'GrahamCampbell\\ResultType\\' => 
         array (
