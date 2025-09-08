@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 use Slim\Factory\AppFactory;
@@ -10,7 +11,8 @@ $app = AppFactory::create();
 
 // ルート定義
 $app->get(
-    '/', function ($request, $response) {
+    '/',
+    function ($request, $response) {
         $response->getBody()->write("Hello Slim!");
         return $response;
     }

@@ -3,7 +3,7 @@
   <description>PSR-12 base rules</description>
 
   <!-- チェック対象 -->
-  <file>src</file>
+  <file>./</file>
 
   <!-- 除外 -->
   <exclude-pattern>vendor/*</exclude-pattern>
@@ -13,6 +13,6 @@
   <rule ref="PSR12"/>
 
   <!-- 表示オプション -->
-  <arg value="--colors"/>
+  <arg name="colors"/>
   <arg name="extensions" value="php"/>
 </ruleset>
