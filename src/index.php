@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Slim\Factory\AppFactory;
 use Dotenv\Dotenv;
+use Carbon\Carbon;
 
 // Composer autoload を必ず先頭で読み込み
 require __DIR__ . '/vendor/autoload.php';
@@ -12,6 +13,7 @@ require __DIR__ . '/vendor/autoload.php';
 $dotenv = Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
+dd(Carbon::now()->toDateTime());
 dd($_ENV);
 
 $appName = $_ENV['APP_NAME'] ?? 'NoName';
