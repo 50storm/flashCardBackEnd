@@ -12,7 +12,7 @@ require __DIR__ . '/vendor/autoload.php';
 $dotenv = Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
-var_dump($_ENV);
+dd($_ENV);
 
 $appName = $_ENV['APP_NAME'] ?? 'NoName';
 error_log("App loaded: {$appName}");
