@@ -1,9 +1,0 @@
-RewriteEngine On
-
-# 既存ファイル・ディレクトリはそのまま
-RewriteCond %{REQUEST_FILENAME} -f [OR]
-RewriteCond %{REQUEST_FILENAME} -d
-RewriteRule ^ - [L]
-
-# それ以外は全部 index.php へ
-RewriteRule ^ index.php [L]
