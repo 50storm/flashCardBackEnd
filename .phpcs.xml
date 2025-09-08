@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset name="Project Rules">
+  <description>PSR-12 base rules</description>
+
+  <!-- チェック対象 -->
+  <file>src</file>
+
+  <!-- 除外 -->
+  <exclude-pattern>vendor/*</exclude-pattern>
+  <exclude-pattern>node_modules/*</exclude-pattern>
+
+  <!-- ルール -->
+  <rule ref="PSR12"/>
+
+  <!-- 表示オプション -->
+  <arg value="--colors"/>
+  <arg name="extensions" value="php"/>
+</ruleset>
