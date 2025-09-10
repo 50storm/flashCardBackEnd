@@ -7,6 +7,7 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'voku\\' => array($vendorDir . '/voku/portable-ascii/src/voku'),
+    'Webmozart\\Assert\\' => array($vendorDir . '/webmozart/assert/src'),
     'Symfony\\Polyfill\\Php83\\' => array($vendorDir . '/symfony/polyfill-php83'),
     'Symfony\\Polyfill\\Php80\\' => array($vendorDir . '/symfony/polyfill-php80'),
     'Symfony\\Polyfill\\Mbstring\\' => array($vendorDir . '/symfony/polyfill-mbstring'),
@@ -25,6 +26,8 @@ return array(
     'Psr\\Clock\\' => array($vendorDir . '/psr/clock/src'),
     'PhpOption\\' => array($vendorDir . '/phpoption/phpoption/src/PhpOption'),
     'Monolog\\' => array($vendorDir . '/monolog/monolog/src/Monolog'),
+    'Mezzio\\Router\\' => array($vendorDir . '/mezzio/mezzio-router/src'),
+    'Mezzio\\Cors\\' => array($vendorDir . '/mezzio/mezzio-cors/src'),
     'Laravel\\SerializableClosure\\' => array($vendorDir . '/laravel/serializable-closure/src'),
     'Illuminate\\Support\\' => array($vendorDir . '/illuminate/support', $vendorDir . '/illuminate/collections', $vendorDir . '/illuminate/conditionable', $vendorDir . '/illuminate/macroable'),
     'Illuminate\\Pipeline\\' => array($vendorDir . '/illuminate/pipeline'),

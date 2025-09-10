@@ -29,6 +29,10 @@ class ComposerStaticInit4a92c7dfd1fbf943be73b3e14765080d
         array (
             'voku\\' => 5,
         ),
+        'W' => 
+        array (
+            'Webmozart\\Assert\\' => 17,
+        ),
         'S' => 
         array (
             'Symfony\\Polyfill\\Php83\\' => 23,
@@ -55,6 +59,8 @@ class ComposerStaticInit4a92c7dfd1fbf943be73b3e14765080d
         'M' => 
         array (
             'Monolog\\' => 8,
+            'Mezzio\\Router\\' => 14,
+            'Mezzio\\Cors\\' => 12,
         ),
         'L' => 
         array (
@@ -103,6 +109,10 @@ class ComposerStaticInit4a92c7dfd1fbf943be73b3e14765080d
         'voku\\' => 
         array (
             0 => __DIR__ . '/..' . '/voku/portable-ascii/src/voku',
+        ),
+        'Webmozart\\Assert\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/webmozart/assert/src',
         ),
         'Symfony\\Polyfill\\Php83\\' => 
         array (
@@ -177,6 +187,14 @@ class ComposerStaticInit4a92c7dfd1fbf943be73b3e14765080d
         'Monolog\\' => 
         array (
             0 => __DIR__ . '/..' . '/monolog/monolog/src/Monolog',
+        ),
+        'Mezzio\\Router\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/mezzio/mezzio-router/src',
+        ),
+        'Mezzio\\Cors\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/mezzio/mezzio-cors/src',
         ),
         'Laravel\\SerializableClosure\\' => 
         array (
