@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 
+use Dotenv\Exception\InvalidPathException;
 use Slim\Factory\AppFactory;
 use Dotenv\Dotenv;
 use Carbon\Carbon;
@@ -8,10 +9,20 @@ use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 
 require __DIR__ . '/vendor/autoload.php';
-
 // .env 読み込み
-$dotenv = Dotenv::createImmutable(__DIR__);
-$dotenv->load();
+try {
+    $dotenv = Dotenv::createImmutable(__DIR__);
+    $dotenv->load();
+} catch (InvalidPathException $e) {
+    // .env が存在しない or 読めない場合の処理
+    error_log('⚠️ .env file not found or not readable: ' . $e->getMessage());
+    // 必要ならデフォルト値をセット
+    $_ENV['APP_ENV'] = $_ENV['APP_ENV'] ?? 'production';
+    $_ENV['APP_DEBUG'] = $_ENV['APP_DEBUG'] ?? false;
+    echo("please check dotenv");
+    die();
+}
+
 
 $appName = $_ENV['APP_NAME'] ?? 'NoName';
 
