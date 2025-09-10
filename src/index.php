@@ -9,6 +9,7 @@ use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Illuminate\Database\Capsule\Manager as Capsule;
 
 require __DIR__ . '/vendor/autoload.php';
 
@@ -40,6 +41,24 @@ $log = new Logger('flashcard');
 $log->pushHandler(new StreamHandler('php://stdout', Logger::DEBUG));
 $log->info("App loaded", ['app' => $appName, 'time' => $now]);
 
+// =========================
+// 2.5) DB接続 (Eloquent)
+// =========================
+$capsule = new Capsule;
+
+$capsule->addConnection([
+    'driver'    => 'mysql',
+    'host'      => $_ENV['DB_HOST'] ?? 'db',
+    'database'  => $_ENV['DB_DATABASE'] ?? 'flashcard_db',
+    'username'  => $_ENV['DB_USERNAME'] ?? 'admin_user',
+    'password'  => $_ENV['DB_PASSWORD'] ?? 'admin_pass',
+    'charset'   => 'utf8mb4',
+    'collation' => 'utf8mb4_unicode_ci',
+    'prefix'    => '',
+]);
+
+$capsule->setAsGlobal();
+$capsule->bootEloquent();
 /**
  * =========================
  * 3) Slim アプリ作成
@@ -113,6 +132,24 @@ $app->get('/', function (Request $request, Response $response) use ($log) {
     $response->getBody()->write("Hello Slim with Carbon & Monolog!");
     return $response;
 });
+
+$app->get('/users', function (Request $request, Response $response) {
+    $users = \App\Models\User::all();
+    $response->getBody()->write($users->toJson(JSON_PRETTY_PRINT));
+    return $response->withHeader('Content-Type', 'application/json');
+});
+
+$app->get('/health', function (Request $req, Response $res) {
+    try {
+        $now = Capsule::connection()->selectOne('SELECT NOW() AS now');
+        $res->getBody()->write(json_encode(['ok'=>true,'db_time'=>$now->now], JSON_UNESCAPED_UNICODE));
+        return $res->withHeader('Content-Type','application/json');
+    } catch (Throwable $e) {
+        $res->getBody()->write(json_encode(['ok'=>false,'error'=>$e->getMessage()], JSON_UNESCAPED_UNICODE));
+        return $res->withStatus(500)->withHeader('Content-Type','application/json');
+    }
+});
+
 
 /**
  * =========================
