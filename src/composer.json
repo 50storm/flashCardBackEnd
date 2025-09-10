@@ -10,7 +10,9 @@
         "monolog/monolog": "^3.9",
         "illuminate/database": "^11.0",
         "illuminate/events": "^11.",
-        "mezzio/mezzio-cors": "^1.14"
+        "mezzio/mezzio-cors": "^1.14",
+        "php-di/php-di": "^7.1",
+        "php-di/slim-bridge": "^3.4"
     },
     "autoload": {
         "psr-4": {
