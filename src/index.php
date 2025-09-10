@@ -12,7 +12,11 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 
 require __DIR__ . '/vendor/autoload.php';
 
-// .env 読み込み
+/**
+ * =========================
+ * 1) .env 読み込み
+ * =========================
+ */
 try {
     $dotenv = Dotenv::createImmutable(__DIR__);
     $dotenv->load();
@@ -24,50 +28,85 @@ try {
     die();
 }
 
+/**
+ * =========================
+ * 2) ログ / 時刻
+ * =========================
+ */
 $appName = $_ENV['APP_NAME'] ?? 'NoName';
-
-// === Carbon で時刻処理 ===
 $now = Carbon::now()->toDateTimeString();
 
-// === Monolog 設定 ===
 $log = new Logger('flashcard');
 $log->pushHandler(new StreamHandler('php://stdout', Logger::DEBUG));
 $log->info("App loaded", ['app' => $appName, 'time' => $now]);
 
-// Slim アプリ作成
+/**
+ * =========================
+ * 3) Slim アプリ作成
+ * =========================
+ */
 $app = AppFactory::create();
 
 /**
- * ====== CORS ミドルウェア ======
+ * =========================
+ * 4) CORS ミドルウェア
+ *    - プリフライト(OPTIONS)はここで200を返す
+ *    - 全レスポンスにCORSヘッダを付与
+ * =========================
  */
-
-// プリフライト（OPTIONS）用のルート
-$app->options('/{routes:.+}', function (Request $request, Response $response) {
-    return $response->withStatus(200);
-});
-
-// CORS ヘッダ付与
 $app->add(function (Request $request, $handler): Response {
-    $response = $handler->handle($request);
+    // .env: FRONTEND_ORIGINS="https://example.com,http://localhost:5173"
+    $originsEnv = $_ENV['FRONTEND_ORIGINS'] ?? 'http://localhost:5173';
+    $whitelist = array_values(array_filter(array_map('trim', explode(',', $originsEnv))));
+    if (empty($whitelist)) {
+        $whitelist = ['http://localhost:5173'];
+    }
 
     $origin = $request->getHeaderLine('Origin');
-    $whitelist = [
-        'https://your-frontend.example.com',
-        'http://localhost:5173',
-    ];
     $allowOrigin = in_array($origin, $whitelist, true) ? $origin : $whitelist[0];
 
+    // Cookie 等を使う場合は true（デフォルトtrue）
+    $allowCredentials = filter_var($_ENV['CORS_ALLOW_CREDENTIALS'] ?? 'true', FILTER_VALIDATE_BOOL);
+
+    // プリフライト(OPTIONS) はここで即時 200 を返す（どのパスでも有効）
+    if (strtoupper($request->getMethod()) === 'OPTIONS') {
+        $response = new \Slim\Psr7\Response(200);
+        return $response
+            ->withHeader('Access-Control-Allow-Origin', $allowOrigin)
+            ->withHeader('Access-Control-Allow-Credentials', $allowCredentials ? 'true' : 'false')
+            ->withHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-Requested-With')
+            ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
+            ->withHeader('Vary', 'Origin');
+    }
+
+    // 通常リクエスト：次へ
+    $response = $handler->handle($request);
+
+    // 全レスポンスにCORSヘッダ付与
     return $response
         ->withHeader('Access-Control-Allow-Origin', $allowOrigin)
-        ->withHeader('Access-Control-Allow-Credentials', 'true')
-        ->withHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-Requested-With')
+        ->withHeader('Access-Control-Allow-Credentials', $allowCredentials ? 'true' : 'false')
         ->withHeader('Access-Control-Expose-Headers', 'Authorization, Content-Type')
-        ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
         ->withHeader('Vary', 'Origin');
 });
 
 /**
- * ====== ルート定義 ======
+ * =========================
+ * 5) ルーティング / エラーハンドラ
+ * =========================
+ */
+$app->addRoutingMiddleware();
+
+$app->addErrorMiddleware(
+    filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOL), // displayErrorDetails
+    true,  // logErrors
+    true   // logErrorDetails
+);
+
+/**
+ * =========================
+ * 6) ルート定義
+ * =========================
  */
 $app->get('/', function (Request $request, Response $response) use ($log) {
     $log->info("Root route accessed");
@@ -75,5 +114,9 @@ $app->get('/', function (Request $request, Response $response) use ($log) {
     return $response;
 });
 
-// 実行
+/**
+ * =========================
+ * 7) 実行
+ * =========================
+ */
 $app->run();
