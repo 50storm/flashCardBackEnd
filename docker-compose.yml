@@ -19,23 +19,21 @@ services:
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: sample_db
-      MYSQL_USER: sample_user
-      MYSQL_PASSWORD: sample_pass
     ports:
       - "3307:3306"
     volumes:
       - db_data:/var/lib/mysql
+      - ./docker/db:/docker-entrypoint-initdb.d:ro
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     container_name: phpmyadmin8081
     environment:
       PMA_HOST: db
-      PMA_USER: sample_user
-      PMA_PASSWORD: sample_pass
+      PMA_USER: admin_user         # ← 変更
+      PMA_PASSWORD: admin_pass     # ← 変更
     ports:
-      - "8081:80"                  # phpMyAdmin → http://localhost:8081
+      - "8081:80"
     depends_on:
       - db
 
