@@ -11,6 +11,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Illuminate\Database\Capsule\Manager as Capsule;
 
+
 require __DIR__ . '/vendor/autoload.php';
 
 /**
@@ -134,9 +135,19 @@ $app->get('/', function (Request $request, Response $response) use ($log) {
 });
 
 $app->get('/users', function (Request $request, Response $response) {
-    $users = \App\Models\User::all();
-    $response->getBody()->write($users->toJson(JSON_PRETTY_PRINT));
-    return $response->withHeader('Content-Type', 'application/json');
+    try {
+        $rows = Capsule::table('users')
+            ->select('id','name','email','created_at')
+            ->orderBy('id','asc')
+            ->get();
+
+        $response->getBody()->write($rows->toJson(JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE));
+        return $response->withHeader('Content-Type','application/json');
+    } catch (Throwable $e) {
+        $payload = ['ok'=>false, 'error'=>$e->getMessage()];
+        $response->getBody()->write(json_encode($payload, JSON_UNESCAPED_UNICODE));
+        return $response->withStatus(500)->withHeader('Content-Type','application/json');
+    }
 });
 
 $app->get('/health', function (Request $req, Response $res) {
