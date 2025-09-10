@@ -1,18 +1,22 @@
 # PHP 8.3 + Apache の公式イメージをベースにする
 FROM php:8.3-apache
 
-# --- PHP拡張や必要なツールをインストール ---
-RUN apt-get update && apt-get install -y \
+#apt-get 実行時の対話ダイアログを抑止するため
+ENV DEBIAN_FRONTEND=noninteractive
+
+# --- PHP拡張に必要なライブラリ ---
+# oniguruma系（mbstring依存）と ICU（intl用）を追加
+RUN apt-get update && apt-get install -y --no-install-recommends \
     locales \
     libicu-dev \
     libonig-dev \
-    git \
-    unzip \
-    && docker-php-ext-install pdo pdo_mysql mbstring intl \
-    && rm -rf /var/lib/apt/lists/*
+    pkg-config \
+    default-mysql-client \
+ && docker-php-ext-install -j"$(nproc)" intl pdo_mysql mbstring \
+ && apt-get purge -y --auto-remove pkg-config \
+ && rm -rf /var/lib/apt/lists/*
 
-
-# --- ロケールを日本語UTF-8に設定 ---
+# --- ロケール設定（日本語UTF-8）---
 RUN sed -i 's/# *ja_JP.UTF-8 UTF-8/ja_JP.UTF-8 UTF-8/' /etc/locale.gen \
     && locale-gen ja_JP.UTF-8
 ENV LANG=ja_JP.UTF-8 \
