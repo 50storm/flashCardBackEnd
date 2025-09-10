@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+ini_set('display_errors', 1);
+
 use Dotenv\Exception\InvalidPathException;
 use Slim\Factory\AppFactory;
 use Dotenv\Dotenv;
@@ -10,9 +12,10 @@ use Monolog\Handler\StreamHandler;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Illuminate\Database\Capsule\Manager as Capsule;
-
+use App\Models\User;
 
 require __DIR__ . '/vendor/autoload.php';
+// require __DIR__ . '/src/vendor/autoload.php';
 
 /**
  * =========================
@@ -23,6 +26,7 @@ try {
     $dotenv = Dotenv::createImmutable(__DIR__);
     $dotenv->load();
 } catch (InvalidPathException $e) {
+    dd($e->getMessage());
     error_log('⚠️ .env file not found or not readable: ' . $e->getMessage());
     $_ENV['APP_ENV'] = $_ENV['APP_ENV'] ?? 'production';
     $_ENV['APP_DEBUG'] = $_ENV['APP_DEBUG'] ?? false;
@@ -134,21 +138,50 @@ $app->get('/', function (Request $request, Response $response) use ($log) {
     return $response;
 });
 
-$app->get('/users', function (Request $request, Response $response) {
-    try {
-        $rows = Capsule::table('users')
-            ->select('id','name','email','created_at')
-            ->orderBy('id','asc')
-            ->get();
+// ユーザー一覧（Modelなし）
+// $app->get('/users', function (Request $request, Response $response) {
+//     try {
+//         $rows = Capsule::table('users')
+//             ->select('id', 'name', 'email', 'created_at')
+//             ->orderBy('id', 'asc')
+//             ->get();
 
-        $response->getBody()->write($rows->toJson(JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE));
-        return $response->withHeader('Content-Type','application/json');
-    } catch (Throwable $e) {
-        $payload = ['ok'=>false, 'error'=>$e->getMessage()];
-        $response->getBody()->write(json_encode($payload, JSON_UNESCAPED_UNICODE));
-        return $response->withStatus(500)->withHeader('Content-Type','application/json');
-    }
+//         $response->getBody()->write($rows->toJson(JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+//         return $response->withHeader('Content-Type', 'application/json');
+//     } catch (\Throwable $e) {
+//         $payload = ['ok' => false, 'error' => $e->getMessage()];
+//         $response->getBody()->write(json_encode($payload, JSON_UNESCAPED_UNICODE));
+//         return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+//     }
+// });
+
+// 一覧（モデル版）
+$app->get('/users', function (Request $request, Response $response) {
+    $users = User::orderBy('id')->get();
+        // dd("here");
+
+    $response->getBody()->write(
+        $users->toJson(JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
+    );
+    return $response->withHeader('Content-Type', 'application/json');
 });
+
+
+// $app->get('/users', function (Request $request, Response $response) {
+//     try {
+//         $rows = Capsule::table('users')
+//             ->select('id','name','email','created_at')
+//             ->orderBy('id','asc')
+//             ->get();
+
+//         $response->getBody()->write($rows->toJson(JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE));
+//         return $response->withHeader('Content-Type','application/json');
+//     } catch (Throwable $e) {
+//         $payload = ['ok'=>false, 'error'=>$e->getMessage()];
+//         $response->getBody()->write(json_encode($payload, JSON_UNESCAPED_UNICODE));
+//         return $response->withStatus(500)->withHeader('Content-Type','application/json');
+//     }
+// });
 
 $app->get('/health', function (Request $req, Response $res) {
     try {

@@ -1,0 +1,10 @@
+flashCardBackEnd/
+├── composer.json
+├── composer.lock
+├── index.php
+├── src/
+│   ├── Models/
+│   │   └── User.php
+│   └── config/
+│       └── database.php
+└── vendor/
