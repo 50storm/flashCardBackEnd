@@ -89,7 +89,7 @@ $app->add(function (Request $request, $handler): Response {
     $origin = $request->getHeaderLine('Origin');
     $allowOrigin = in_array($origin, $whitelist, true) ? $origin : $whitelist[0];
 
-    // Cookie 等を使う場合は true（デフォルトtrue）
+    // Coresultie 等を使う場合は true（デフォルトtrue）
     $allowCredentials = filter_var($_ENV['CORS_ALLOW_CREDENTIALS'] ?? 'true', FILTER_VALIDATE_BOOL);
 
     // プリフライト(OPTIONS) はここで即時 200 を返す（どのパスでも有効）
@@ -149,11 +149,35 @@ $app->get('/', function (Request $request, Response $response) use ($log) {
 //         $response->getBody()->write($rows->toJson(JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 //         return $response->withHeader('Content-Type', 'application/json');
 //     } catch (\Throwable $e) {
-//         $payload = ['ok' => false, 'error' => $e->getMessage()];
+//         $payload = ['result' => false, 'error' => $e->getMessage()];
 //         $response->getBody()->write(json_encode($payload, JSON_UNESCAPED_UNICODE));
 //         return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
 //     }
 // });
+
+// TODO 
+// ユーザー作成のサンプルも追加する
+// 作成（サンプル）
+$app->post('/user', function (Request $request, Response $response) {
+    $data = $request->getParsedBody();
+
+    try {
+        $user = User::create([
+            'name'  => $data['name'] ?? 'NoName',
+            'email' => $data['email'] ?? 'noemail@example.com',
+        ]);
+
+        $payload = ['result' => true, 'user' => $user];
+        $response->getBody()->write(json_encode($payload, JSON_UNESCAPED_UNICODE));
+        return $response->withHeader('Content-Type', 'application/json');
+
+    } catch (Throwable $e) {
+        $payload = ['result' => false, 'error' => $e->getMessage()];
+        $response->getBody()->write(json_encode($payload, JSON_UNESCAPED_UNICODE));
+        return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+    }
+});
+
 
 // 一覧（モデル版）
 $app->get('/users', function (Request $request, Response $response) {
@@ -167,6 +191,7 @@ $app->get('/users', function (Request $request, Response $response) {
 });
 
 
+
 // $app->get('/users', function (Request $request, Response $response) {
 //     try {
 //         $rows = Capsule::table('users')
@@ -177,7 +202,7 @@ $app->get('/users', function (Request $request, Response $response) {
 //         $response->getBody()->write($rows->toJson(JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE));
 //         return $response->withHeader('Content-Type','application/json');
 //     } catch (Throwable $e) {
-//         $payload = ['ok'=>false, 'error'=>$e->getMessage()];
+//         $payload = ['result'=>false, 'error'=>$e->getMessage()];
 //         $response->getBody()->write(json_encode($payload, JSON_UNESCAPED_UNICODE));
 //         return $response->withStatus(500)->withHeader('Content-Type','application/json');
 //     }
@@ -186,10 +211,10 @@ $app->get('/users', function (Request $request, Response $response) {
 $app->get('/health', function (Request $req, Response $res) {
     try {
         $now = Capsule::connection()->selectOne('SELECT NOW() AS now');
-        $res->getBody()->write(json_encode(['ok'=>true,'db_time'=>$now->now], JSON_UNESCAPED_UNICODE));
+        $res->getBody()->write(json_encode(['result'=>true,'db_time'=>$now->now], JSON_UNESCAPED_UNICODE));
         return $res->withHeader('Content-Type','application/json');
     } catch (Throwable $e) {
-        $res->getBody()->write(json_encode(['ok'=>false,'error'=>$e->getMessage()], JSON_UNESCAPED_UNICODE));
+        $res->getBody()->write(json_encode(['result'=>false,'error'=>$e->getMessage()], JSON_UNESCAPED_UNICODE));
         return $res->withStatus(500)->withHeader('Content-Type','application/json');
     }
 });
