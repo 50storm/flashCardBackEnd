@@ -179,6 +179,45 @@ $app->get('/', function (Request $request, Response $response) use ($log) {
 //     }
 // });
 
+// ログイン（サンプル）
+$app->post('/login', function (Request $request, Response $response) {
+    $data = (array)$request->getParsedBody();
+
+    $email = $data['email'] ?? null;
+    $password = $data['password'] ?? null;
+
+    if (!$email || !$password) {
+        $response->getBody()->write(json_encode([
+            'ok' => false,
+            'error' => 'メールアドレスとパスワードを入力してください。',
+        ], JSON_UNESCAPED_UNICODE));
+        return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+    }
+
+    // DBからユーザー検索
+    $user = User::where('email', $email)->first();
+
+    if (!$user || !password_verify($password, $user->password)) {
+        $response->getBody()->write(json_encode([
+            'ok' => false,
+            'error' => '認証に失敗しました。',
+        ], JSON_UNESCAPED_UNICODE));
+        return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
+    }
+
+    // OK → ユーザー情報返却（本番ならJWTやセッションを返す）
+    $response->getBody()->write(json_encode([
+        'ok' => true,
+        'user' => [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+        ],
+    ], JSON_UNESCAPED_UNICODE));
+
+    return $response->withHeader('Content-Type', 'application/json');
+});
+
 // TODO 
 // ユーザー作成のサンプルも追加する
 // 作成（サンプル）
