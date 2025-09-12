@@ -74,6 +74,7 @@ class ComposerStaticInit452c487ea1092bb421129a894d5376b8
         'L' => 
         array (
             'Laravel\\SerializableClosure\\' => 28,
+            'LaravelLang\\Lang\\' => 17,
         ),
         'I' => 
         array (
@@ -239,6 +240,10 @@ class ComposerStaticInit452c487ea1092bb421129a894d5376b8
         'Laravel\\SerializableClosure\\' => 
         array (
             0 => __DIR__ . '/..' . '/laravel/serializable-closure/src',
+        ),
+        'LaravelLang\\Lang\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/laravel-lang/lang/src',
         ),
         'Invoker\\' => 
         array (

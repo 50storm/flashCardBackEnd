@@ -16,6 +16,9 @@ use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Translation\ArrayLoader;
 use Illuminate\Translation\Translator;
 use Illuminate\Validation\Factory as ValidatorFactory;
+use Illuminate\Filesystem\Filesystem;
+use Illuminate\Translation\FileLoader;
+use Illuminate\Validation\DatabasePresenceVerifier;
 
 require __DIR__ . '/vendor/autoload.php';
 // require __DIR__ . '/src/vendor/autoload.php';
@@ -71,9 +74,15 @@ $capsule->bootEloquent();
 // =========================
 // 2.6) バリデーション初期化
 // =========================
-$loader = new ArrayLoader();
-$translator = new Translator($loader, 'en'); // ja にすれば日本語化対応も可能
+$filesystem = new Filesystem();
+$loader = new FileLoader($filesystem, __DIR__ . '/resources/lang'); // 言語ファイルのパス
+$translator = new Translator($loader, 'ja');
+$translator->setFallback('en');
 $validatorFactory = new ValidatorFactory($translator);
+// DB接続をバリデータにセット
+$validatorFactory->setPresenceVerifier(
+    new DatabasePresenceVerifier($capsule->getDatabaseManager())
+);
 
 /**
  * =========================
@@ -130,6 +139,10 @@ $app->add(function (Request $request, $handler): Response {
  * 5) ルーティング / エラーハンドラ
  * =========================
  */
+
+// ★ ここで BodyParsing を追加
+$app->addBodyParsingMiddleware();
+
 $app->addRoutingMiddleware();
 
 $app->addErrorMiddleware(

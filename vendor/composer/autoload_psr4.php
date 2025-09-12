@@ -34,6 +34,7 @@ return array(
     'Mezzio\\Router\\' => array($vendorDir . '/mezzio/mezzio-router/src'),
     'Mezzio\\Cors\\' => array($vendorDir . '/mezzio/mezzio-cors/src'),
     'Laravel\\SerializableClosure\\' => array($vendorDir . '/laravel/serializable-closure/src'),
+    'LaravelLang\\Lang\\' => array($vendorDir . '/laravel-lang/lang/src'),
     'Invoker\\' => array($vendorDir . '/php-di/invoker/src'),
     'Illuminate\\Validation\\' => array($vendorDir . '/illuminate/validation'),
     'Illuminate\\Translation\\' => array($vendorDir . '/illuminate/translation'),
