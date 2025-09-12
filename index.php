@@ -7,12 +7,15 @@ use Dotenv\Exception\InvalidPathException;
 use Slim\Factory\AppFactory;
 use Dotenv\Dotenv;
 use Carbon\Carbon;
+use App\Models\User;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Illuminate\Database\Capsule\Manager as Capsule;
-use App\Models\User;
+use Illuminate\Translation\ArrayLoader;
+use Illuminate\Translation\Translator;
+use Illuminate\Validation\Factory as ValidatorFactory;
 
 require __DIR__ . '/vendor/autoload.php';
 // require __DIR__ . '/src/vendor/autoload.php';
@@ -64,6 +67,14 @@ $capsule->addConnection([
 
 $capsule->setAsGlobal();
 $capsule->bootEloquent();
+
+// =========================
+// 2.6) バリデーション初期化
+// =========================
+$loader = new ArrayLoader();
+$translator = new Translator($loader, 'en'); // ja にすれば日本語化対応も可能
+$validatorFactory = new ValidatorFactory($translator);
+
 /**
  * =========================
  * 3) Slim アプリ作成
@@ -158,24 +169,39 @@ $app->get('/', function (Request $request, Response $response) use ($log) {
 // TODO 
 // ユーザー作成のサンプルも追加する
 // 作成（サンプル）
-$app->post('/user', function (Request $request, Response $response) {
-    $data = $request->getParsedBody();
+// 作成
+$app->post('/user', function (Request $request, Response $response) use ($validatorFactory) {
+    $data = (array)$request->getParsedBody();
 
-    try {
-        $user = User::create([
-            'name'  => $data['name'] ?? 'NoName',
-            'email' => $data['email'] ?? 'noemail@example.com',
-        ]);
+    // バリデーションルール
+    $rules = [
+        'name'  => 'required|string|max:100',
+        'email' => 'required|email|unique:users,email',
+    ];
 
-        $payload = ['result' => true, 'user' => $user];
-        $response->getBody()->write(json_encode($payload, JSON_UNESCAPED_UNICODE));
-        return $response->withHeader('Content-Type', 'application/json');
+    // 実行
+    $validator = $validatorFactory->make($data, $rules);
 
-    } catch (Throwable $e) {
-        $payload = ['result' => false, 'error' => $e->getMessage()];
-        $response->getBody()->write(json_encode($payload, JSON_UNESCAPED_UNICODE));
-        return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+    if ($validator->fails()) {
+        $errors = $validator->errors()->all();
+        $response->getBody()->write(json_encode([
+            'ok' => false,
+            'errors' => $errors
+        ], JSON_UNESCAPED_UNICODE));
+        return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
     }
+
+    // OK → 登録
+    $user = User::create([
+        'name'  => $data['name'],
+        'email' => $data['email'],
+    ]);
+
+    $response->getBody()->write(json_encode([
+        'ok' => true,
+        'user' => $user
+    ], JSON_UNESCAPED_UNICODE));
+    return $response->withHeader('Content-Type', 'application/json');
 });
 
 
