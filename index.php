@@ -196,12 +196,14 @@ $app->post('/user', function (Request $request, Response $response) use ($valida
     $validator = $validatorFactory->make($data, $rules);
 
     if ($validator->fails()) {
-        $errors = $validator->errors()->all();
-        $response->getBody()->write(json_encode([
-            'ok' => false,
-            'errors' => $errors
-        ], JSON_UNESCAPED_UNICODE));
-        return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+       $payload = [
+        'ok' => false,
+        'errors' => $validator->errors()->toArray(), // フィールドごと
+        ];
+        $response->getBody()->write(json_encode($payload, JSON_UNESCAPED_UNICODE));
+        return $response
+            ->withStatus(422)
+            ->withHeader('Content-Type', 'application/json');
     }
 
     // OK → 登録
