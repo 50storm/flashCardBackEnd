@@ -1,7 +1,7 @@
-# PHP 8.3 + Apache の公式イメージをベースにする
+# PHP 8.3 + Apache の公式イメージをベース
 FROM php:8.3-apache
 
-#apt-get 実行時の対話ダイアログを抑止するため
+# 対話ダイアログ抑止
 ENV DEBIAN_FRONTEND=noninteractive
 
 # --- PHP拡張に必要なライブラリ ---
@@ -23,8 +23,10 @@ ENV LANG=ja_JP.UTF-8 \
     LANGUAGE=ja_JP:ja \
     LC_ALL=ja_JP.UTF-8
 
-# --- Apache の mod_rewrite を有効化 ---
-RUN a2enmod rewrite
+# --- Apache の mod_rewrite と mod_headers を有効化 ---
+RUN a2enmod rewrite headers
+
+
 # .htaccess を有効化する設定ファイルをコピーして反映
 COPY apache/override.conf /etc/apache2/conf-available/override.conf
 RUN a2enconf override
@@ -39,3 +41,10 @@ COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 
 # --- 作業ディレクトリを /var/www/html に設定 ---
 WORKDIR /var/www/html
+
+# アプリ一式をコピー（.htaccess もここで反映される）
+# ※ .dockerignore で node_modules や vendor を除外推奨
+COPY . /var/www/html
+
+# パーミッション（必要に応じて）
+RUN chown -R www-data:www-data /var/www/html

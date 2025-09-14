@@ -37,3 +37,15 @@ docker compose exec app bash
 
 # DBコンテナに入る（例: mysql）
 docker compose exec db mysql -u sample_user -p
+
+# appコンテナのみビルドし直し
+docker compose build --no-cache app
+
+# appコンテナのみ起動し直し
+docker compose up -d app
+
+# もし Dockerfile や apache/override.conf を修正した場合は必ず build が必要
+# php のコードや .env のみ変更なら リビルド不要 で up -d だけで反映されます。
+
+# ビルドエラーないかログ見るときなど
+ docker logs -f php-app

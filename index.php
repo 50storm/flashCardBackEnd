@@ -116,19 +116,22 @@ $app->add(function (Request $req, $handler): Response {
  * 4) CORS ミドルウェア（tuupola 版）
  * =========================
  */
-$app->add(new CorsMiddleware([
-    "origin"         => [$_ENV['FRONTEND_URL'] ?? "http://localhost:3000"], // 単一オリジン
-    // 複数許可したい場合は .env をカンマ区切りにして explode してください
-    // "origin"      => array_map('trim', explode(',', $_ENV['FRONTEND_ORIGINS'] ?? 'http://localhost:3000')),
+// .env から許可オリジンを配列化
+$origins = array_values(array_filter(array_map("trim",
+    explode(",", $_ENV["FRONTEND_ORIGINS"] ?? "http://localhost:3000")
+)));
 
+$app->add(new CorsMiddleware([
+    // リストに入っている Origin のみ許可（リクエストの Origin が一致した場合にそのまま反映）
+    "origin"         => $origins,                                  // ★動的
     "methods"        => ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
     "headers.allow"  => ["Content-Type","Authorization","X-Requested-With","X-CSRF-Token"],
     "headers.expose" => ["Authorization","Content-Type"],
-    "credentials"    => true,    // Cookie/Authorization を使うなら true
-    "cache"          => 86400,   // Access-Control-Max-Age
+    "credentials"    => filter_var($_ENV["CORS_ALLOW_CREDENTIALS"] ?? "true", FILTER_VALIDATE_BOOL),
+    "cache"          => 86400,
 ]));
 
-// プリフライト（OPTIONS）を 204 で返す保険のルート
+// OPTIONS は 204 を返すだけ（tuupola が CORS ヘッダ付与）
 $app->options('/{routes:.+}', fn($req, $res) => $res->withStatus(204));
 
 /**
