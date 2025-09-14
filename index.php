@@ -176,13 +176,25 @@ $app->get('/', function (Request $request, Response $response) use ($log) {
 });
 
 // ログイン（セッション開始）
-$app->post('/login', function (Request $request, Response $response) {
-    $data = (array)$request->getParsedBody();
+$app->post('/login', function (Request $request, Response $response) use ($log) {
+    // 生ボディを文字列で
+    $rawBody = (string) $request->getBody();
+    $log->debug("Raw body", ['raw' => $rawBody]);
+
+    // パースされたボディ
+    $parsed = $request->getParsedBody();
+    $log->debug("Parsed body", ['parsed' => $parsed]);
+
+    // ヘッダー一覧
+    $log->debug("Headers", ['headers' => $request->getHeaders()]);
+
+    $data = (array)$parsed;
 
     $email = $data['email'] ?? null;
     $password = $data['password'] ?? null;
 
     if (!$email || !$password) {
+        $log->warning("Login missing fields", ['email' => $email, 'password' => $password]);
         $response->getBody()->write(json_encode([
             'ok' => false,
             'error' => 'メールアドレスとパスワードを入力してください。',
@@ -192,7 +204,12 @@ $app->post('/login', function (Request $request, Response $response) {
 
     $user = User::where('email', $email)->first();
 
+    if (!$user) {
+        $log->warning("User not found", ['email' => $email]);
+    }
+
     if (!$user || !password_verify($password, $user->password)) {
+        $log->warning("Login failed", ['email' => $email]);
         $response->getBody()->write(json_encode([
             'ok' => false,
             'error' => '認証に失敗しました。',
@@ -202,6 +219,8 @@ $app->post('/login', function (Request $request, Response $response) {
 
     // ★ セッションに保存
     $_SESSION['user_id'] = (int)$user->id;
+
+    $log->info("Login success", ['user_id' => $user->id, 'email' => $user->email]);
 
     $response->getBody()->write(json_encode([
         'ok' => true,
