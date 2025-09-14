@@ -7,7 +7,8 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'voku\\' => array($vendorDir . '/voku/portable-ascii/src/voku'),
-    'Webmozart\\Assert\\' => array($vendorDir . '/webmozart/assert/src'),
+    'Tuupola\\Middleware\\' => array($vendorDir . '/tuupola/cors-middleware/src', $vendorDir . '/tuupola/callable-handler/src'),
+    'Tuupola\\Http\\Factory\\' => array($vendorDir . '/tuupola/http-factory/src'),
     'Symfony\\Polyfill\\Php83\\' => array($vendorDir . '/symfony/polyfill-php83'),
     'Symfony\\Polyfill\\Php80\\' => array($vendorDir . '/symfony/polyfill-php80'),
     'Symfony\\Polyfill\\Mbstring\\' => array($vendorDir . '/symfony/polyfill-mbstring'),
@@ -30,9 +31,8 @@ return array(
     'Psr\\Container\\' => array($vendorDir . '/psr/container/src'),
     'Psr\\Clock\\' => array($vendorDir . '/psr/clock/src'),
     'PhpOption\\' => array($vendorDir . '/phpoption/phpoption/src/PhpOption'),
+    'Neomerx\\Cors\\' => array($vendorDir . '/neomerx/cors-psr7/src'),
     'Monolog\\' => array($vendorDir . '/monolog/monolog/src/Monolog'),
-    'Mezzio\\Router\\' => array($vendorDir . '/mezzio/mezzio-router/src'),
-    'Mezzio\\Cors\\' => array($vendorDir . '/mezzio/mezzio-cors/src'),
     'Laravel\\SerializableClosure\\' => array($vendorDir . '/laravel/serializable-closure/src'),
     'LaravelLang\\Lang\\' => array($vendorDir . '/laravel-lang/lang/src'),
     'Invoker\\' => array($vendorDir . '/php-di/invoker/src'),

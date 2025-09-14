@@ -33,9 +33,10 @@ class ComposerStaticInit452c487ea1092bb421129a894d5376b8
         array (
             'voku\\' => 5,
         ),
-        'W' => 
+        'T' => 
         array (
-            'Webmozart\\Assert\\' => 17,
+            'Tuupola\\Middleware\\' => 19,
+            'Tuupola\\Http\\Factory\\' => 21,
         ),
         'S' => 
         array (
@@ -65,11 +66,13 @@ class ComposerStaticInit452c487ea1092bb421129a894d5376b8
             'Psr\\Clock\\' => 10,
             'PhpOption\\' => 10,
         ),
+        'N' => 
+        array (
+            'Neomerx\\Cors\\' => 13,
+        ),
         'M' => 
         array (
             'Monolog\\' => 8,
-            'Mezzio\\Router\\' => 14,
-            'Mezzio\\Cors\\' => 12,
         ),
         'L' => 
         array (
@@ -131,9 +134,14 @@ class ComposerStaticInit452c487ea1092bb421129a894d5376b8
         array (
             0 => __DIR__ . '/..' . '/voku/portable-ascii/src/voku',
         ),
-        'Webmozart\\Assert\\' => 
+        'Tuupola\\Middleware\\' => 
         array (
-            0 => __DIR__ . '/..' . '/webmozart/assert/src',
+            0 => __DIR__ . '/..' . '/tuupola/cors-middleware/src',
+            1 => __DIR__ . '/..' . '/tuupola/callable-handler/src',
+        ),
+        'Tuupola\\Http\\Factory\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/tuupola/http-factory/src',
         ),
         'Symfony\\Polyfill\\Php83\\' => 
         array (
@@ -225,17 +233,13 @@ class ComposerStaticInit452c487ea1092bb421129a894d5376b8
         array (
             0 => __DIR__ . '/..' . '/phpoption/phpoption/src/PhpOption',
         ),
+        'Neomerx\\Cors\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/neomerx/cors-psr7/src',
+        ),
         'Monolog\\' => 
         array (
             0 => __DIR__ . '/..' . '/monolog/monolog/src/Monolog',
-        ),
-        'Mezzio\\Router\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/mezzio/mezzio-router/src',
-        ),
-        'Mezzio\\Cors\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/mezzio/mezzio-cors/src',
         ),
         'Laravel\\SerializableClosure\\' => 
         array (
