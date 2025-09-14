@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 ini_set('display_errors', 1);
 
+use Tuupola\Middleware\CorsMiddleware;
 use Dotenv\Exception\InvalidPathException;
 use Slim\Factory\AppFactory;
 use Dotenv\Dotenv;
@@ -18,6 +19,7 @@ use Illuminate\Validation\Factory as ValidatorFactory;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Translation\FileLoader;
 use Illuminate\Validation\DatabasePresenceVerifier;
+
 
 require __DIR__ . '/vendor/autoload.php';
 
@@ -111,39 +113,23 @@ $app->add(function (Request $req, $handler): Response {
 
 /**
  * =========================
- * 4) CORS ミドルウェア
+ * 4) CORS ミドルウェア（tuupola 版）
  * =========================
  */
-$app->add(function (Request $request, $handler): Response {
-    $originsEnv = $_ENV['FRONTEND_ORIGINS'] ?? 'http://localhost:5173';
-    $whitelist = array_values(array_filter(array_map('trim', explode(',', $originsEnv))));
-    if (empty($whitelist)) {
-        $whitelist = ['http://localhost:5173'];
-    }
+$app->add(new CorsMiddleware([
+    "origin"         => [$_ENV['FRONTEND_URL'] ?? "http://localhost:3000"], // 単一オリジン
+    // 複数許可したい場合は .env をカンマ区切りにして explode してください
+    // "origin"      => array_map('trim', explode(',', $_ENV['FRONTEND_ORIGINS'] ?? 'http://localhost:3000')),
 
-    $origin = $request->getHeaderLine('Origin');
-    $allowOrigin = in_array($origin, $whitelist, true) ? $origin : $whitelist[0];
+    "methods"        => ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
+    "headers.allow"  => ["Content-Type","Authorization","X-Requested-With","X-CSRF-Token"],
+    "headers.expose" => ["Authorization","Content-Type"],
+    "credentials"    => true,    // Cookie/Authorization を使うなら true
+    "cache"          => 86400,   // Access-Control-Max-Age
+]));
 
-    $allowCredentials = filter_var($_ENV['CORS_ALLOW_CREDENTIALS'] ?? 'true', FILTER_VALIDATE_BOOL);
-
-    if (strtoupper($request->getMethod()) === 'OPTIONS') {
-        $response = new \Slim\Psr7\Response(200);
-        return $response
-            ->withHeader('Access-Control-Allow-Origin', $allowOrigin)
-            ->withHeader('Access-Control-Allow-Credentials', $allowCredentials ? 'true' : 'false')
-            ->withHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-Requested-With, X-CSRF-Token')
-            ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
-            ->withHeader('Vary', 'Origin');
-    }
-
-    $response = $handler->handle($request);
-
-    return $response
-        ->withHeader('Access-Control-Allow-Origin', $allowOrigin)
-        ->withHeader('Access-Control-Allow-Credentials', $allowCredentials ? 'true' : 'false')
-        ->withHeader('Access-Control-Expose-Headers', 'Authorization, Content-Type')
-        ->withHeader('Vary', 'Origin');
-});
+// プリフライト（OPTIONS）を 204 で返す保険のルート
+$app->options('/{routes:.+}', fn($req, $res) => $res->withStatus(204));
 
 /**
  * =========================
