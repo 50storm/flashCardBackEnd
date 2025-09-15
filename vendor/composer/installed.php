@@ -3,7 +3,7 @@
         'name' => 'iga/flashcards',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => 'ae0860fd46e07adc6c42a994b08bd84f481a7258',
+        'reference' => '93c2501dee407b2a75f880dd0234b9c97ed701b9',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -64,6 +64,15 @@
             'aliases' => array(),
             'dev_requirement' => false,
         ),
+        'firebase/php-jwt' => array(
+            'pretty_version' => 'v6.11.1',
+            'version' => '6.11.1.0',
+            'reference' => 'd1e91ecf8c598d073d0995afa8cd5c75c6e19e66',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../firebase/php-jwt',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
         'graham-campbell/result-type' => array(
             'pretty_version' => 'v1.1.3',
             'version' => '1.1.3.0',
@@ -76,7 +85,7 @@
         'iga/flashcards' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => 'ae0860fd46e07adc6c42a994b08bd84f481a7258',
+            'reference' => '93c2501dee407b2a75f880dd0234b9c97ed701b9',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
