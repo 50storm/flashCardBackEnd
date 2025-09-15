@@ -249,7 +249,9 @@ $app->group('/api/flash-cards', function (\Slim\Routing\RouteCollectorProxy $gro
         ]);
 
         $res->getBody()->write(json_encode(['ok'=>true,'card'=>$card], JSON_UNESCAPED_UNICODE));
-        return $res->withStatus(201)->withHeader('Content-Type','application/json');
+        return $res->withStatus(201)
+                ->withHeader('Content-Type','application/json')
+                ->withHeader('Location', "/api/flash-cards/{$card->id}");
     });
 
     $group->get('/{id}', function (Request $req, Response $res, array $args) {
