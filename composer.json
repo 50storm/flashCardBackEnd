@@ -16,7 +16,8 @@
         "illuminate/translation": "^11.46",
         "laravel-lang/lang": "^12.17",
         "psr/http-message": "^1.1",
-        "tuupola/cors-middleware": "^1.5"
+        "tuupola/cors-middleware": "^1.5",
+        "firebase/php-jwt": "^6.11"
     },
     "autoload": {
         "psr-4": {
