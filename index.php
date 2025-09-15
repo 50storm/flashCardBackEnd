@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 ini_set('display_errors', '1');
+ini_set('error_reporting', E_ALL);
 
 use Tuupola\Middleware\CorsMiddleware;
 use Dotenv\Exception\InvalidPathException;
@@ -31,14 +32,14 @@ require __DIR__ . '/vendor/autoload.php';
  * ========================= */
 function makeAccessToken(object $user): string {
     $now = time();
-    $ttl = (int)($_ENV['ACCESS_TOKEN_TTL'] ?? 900); // 15分既定
+    $ttl = (int)($_ENV['ACCESS_TOKEN_TTL'] ?? 900);
     $payload = [
-        'iss' => $_ENV['JWT_ISS'] ?? 'flashcards-api',
-        'aud' => $_ENV['JWT_AUD'] ?? 'flashcards-client',
-        'iat' => $now,
-        'nbf' => $now,
-        'exp' => $now + $ttl,
-        'sub' => (int)$user->id,
+        'iss'   => $_ENV['JWT_ISS'] ?? 'flashcards-api',
+        'aud'   => $_ENV['JWT_AUD'] ?? 'flashcards-client',
+        'iat'   => $now,
+        'nbf'   => $now,
+        'exp'   => $now + $ttl,
+        'sub'   => (int)$user->id,
         'email' => (string)$user->email,
     ];
     return JWT::encode($payload, $_ENV['JWT_SECRET'], 'HS256');
@@ -52,13 +53,12 @@ try {
     $dotenv->load();
 } catch (InvalidPathException $e) {
     error_log('⚠️ .env file not found or not readable: ' . $e->getMessage());
-    $_ENV['APP_ENV'] = $_ENV['APP_ENV'] ?? 'production';
+    $_ENV['APP_ENV']   = $_ENV['APP_ENV'] ?? 'production';
     $_ENV['APP_DEBUG'] = $_ENV['APP_DEBUG'] ?? false;
     echo("please check dotenv\n");
     die();
 }
 
-// JWT の時間ずれ許容（例: 60秒）
 JWT::$leeway = (int)($_ENV['JWT_LEEWAY'] ?? 60);
 
 /* =========================
@@ -89,6 +89,16 @@ $capsule->setAsGlobal();
 $capsule->bootEloquent();
 
 /* =========================
+ * 2.6) バリデーション初期化
+ * ========================= */
+$filesystem = new Filesystem();
+$loader = new FileLoader($filesystem, __DIR__ . '/resources/lang');
+$translator = new Translator($loader, 'ja');
+$translator->setFallback('en');
+$validatorFactory = new ValidatorFactory($translator);
+$validatorFactory->setPresenceVerifier(new DatabasePresenceVerifier($capsule->getDatabaseManager()));
+
+/* =========================
  * 2.7) Schema: flash_cards 作成（なければ）
  * ========================= */
 $hasUsersTable = Capsule::schema()->hasTable('users');
@@ -107,36 +117,9 @@ if (!Capsule::schema()->hasTable('flash_cards')) {
 }
 
 /* =========================
- * 2.6) バリデーション初期化
- * ========================= */
-$filesystem = new Filesystem();
-$loader = new FileLoader($filesystem, __DIR__ . '/resources/lang');
-$translator = new Translator($loader, 'ja');
-$translator->setFallback('en');
-$validatorFactory = new ValidatorFactory($translator);
-$validatorFactory->setPresenceVerifier(new DatabasePresenceVerifier($capsule->getDatabaseManager()));
-
-/* =========================
  * 3) Slim アプリ作成
  * ========================= */
 $app = AppFactory::create();
-
-/* =========================
- * 3.5) セッション（Cookie）
- * ========================= */
-session_name('flashcard_sid');
-session_set_cookie_params([
-  'lifetime' => 0,
-  'path' => '/',
-  'domain' => '',
-  'secure' => false,         // 本番は true（HTTPS必須）
-  'httponly' => true,
-  'samesite' => 'Lax',       // クロスオリジンでCookie送るなら 'None' + secure=true
-]);
-$app->add(function (Request $req, $handler): Response {
-    if (session_status() === PHP_SESSION_NONE) { session_start(); }
-    return $handler->handle($req);
-});
 
 /* =========================
  * 4) CORS（tuupola）
@@ -166,16 +149,6 @@ $app->addErrorMiddleware(
 /* =========================
  * 5.5) 認証ミドルウェア
  * ========================= */
-$sessionAuth = function (Request $req, $handler) {
-    if (empty($_SESSION['user_id'])) {
-        $r = new \Slim\Psr7\Response(401);
-        $r->getBody()->write(json_encode(['ok'=>false,'error'=>'Unauthorized'], JSON_UNESCAPED_UNICODE));
-        return $r->withHeader('Content-Type','application/json');
-    }
-    $req = $req->withAttribute('user_id', (int)$_SESSION['user_id']);
-    return $handler->handle($req);
-};
-
 $jwtAuth = function (Request $req, $handler) {
     $auth = $req->getHeaderLine('Authorization');
     if (!preg_match('/Bearer\s+(.+)/i', $auth, $m)) {
@@ -225,11 +198,11 @@ $app->post('/auth/login', function (Request $request, Response $response) {
     $token = makeAccessToken($user);
 
     $response->getBody()->write(json_encode([
-        'ok' => true,
+        'ok'           => true,
         'access_token' => $token,
         'token_type'   => 'Bearer',
         'expires_in'   => (int)($_ENV['ACCESS_TOKEN_TTL'] ?? 900),
-        'user' => ['id'=>$user->id,'name'=>$user->name,'email'=>$user->email],
+        'user'         => ['id'=>$user->id,'name'=>$user->name,'email'=>$user->email],
     ], JSON_UNESCAPED_UNICODE));
     return $response->withHeader('Content-Type','application/json');
 });
@@ -248,153 +221,133 @@ $app->get('/api/me', function (Request $req, Response $res) {
 })->add($jwtAuth);
 
 /* --- JWT版 FlashCards --- */
-$app->get('/api/flash-cards', function (Request $req, Response $res) {
-    $userId = (int)$req->getAttribute('user_id');
-    $cards = FlashCard::where('user_id', $userId)->orderByDesc('id')->get();
-    $res->getBody()->write($cards->toJson(JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    return $res->withHeader('Content-Type','application/json');
-})->add($jwtAuth);
+$app->group('/api/flash-cards', function (\Slim\Routing\RouteCollectorProxy $group) use ($validatorFactory) {
+    $group->get('', function (Request $req, Response $res) {
+        $userId = (int)$req->getAttribute('user_id');
+        $cards = FlashCard::where('user_id', $userId)->orderByDesc('id')->get();
+        $res->getBody()->write($cards->toJson(JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        return $res->withHeader('Content-Type','application/json');
+    });
 
-$app->post('/api/flash-cards', function (Request $req, Response $res) use ($validatorFactory) {
-    $userId = (int)$req->getAttribute('user_id');
-    $data   = (array)$req->getParsedBody();
+    $group->post('', function (Request $req, Response $res) use ($validatorFactory) {
+        $userId = (int)$req->getAttribute('user_id');
+        $data   = (array)$req->getParsedBody();
 
-    $v = $validatorFactory->make($data, [
-        'front' => 'required|string|max:500',
-        'back'  => 'required|string|max:500',
-    ]);
-    if ($v->fails()) {
-        $res->getBody()->write(json_encode(['ok'=>false,'errors'=>$v->errors()->toArray()], JSON_UNESCAPED_UNICODE));
-        return $res->withStatus(422)->withHeader('Content-Type','application/json');
-    }
+        $v = $validatorFactory->make($data, [
+            'front' => 'required|string|max:500',
+            'back'  => 'required|string|max:500',
+        ]);
+        if ($v->fails()) {
+            $res->getBody()->write(json_encode(['ok'=>false,'errors'=>$v->errors()->toArray()], JSON_UNESCAPED_UNICODE));
+            return $res->withStatus(422)->withHeader('Content-Type','application/json');
+        }
 
-    $card = FlashCard::create([
-        'user_id' => $userId,
-        'front'   => $data['front'],
-        'back'    => $data['back'],
-    ]);
+        $card = FlashCard::create([
+            'user_id' => $userId,
+            'front'   => $data['front'],
+            'back'    => $data['back'],
+        ]);
 
-    $res->getBody()->write(json_encode(['ok'=>true,'card'=>$card], JSON_UNESCAPED_UNICODE));
-    return $res->withStatus(201)->withHeader('Content-Type','application/json');
-})->add($jwtAuth);
+        $res->getBody()->write(json_encode(['ok'=>true,'card'=>$card], JSON_UNESCAPED_UNICODE));
+        return $res->withStatus(201)->withHeader('Content-Type','application/json');
+    });
 
-$app->get('/api/flash-cards/{id}', function (Request $req, Response $res, array $args) {
-    $userId = (int)$req->getAttribute('user_id');
-    $id     = (int)$args['id'];
-    $card = FlashCard::where('user_id', $userId)->find($id);
-    if (!$card) {
-        $res->getBody()->write(json_encode(['ok'=>false,'error'=>'Not found'], JSON_UNESCAPED_UNICODE));
-        return $res->withStatus(404)->withHeader('Content-Type','application/json');
-    }
-    $res->getBody()->write(json_encode(['ok'=>true,'card'=>$card], JSON_UNESCAPED_UNICODE));
-    return $res->withHeader('Content-Type','application/json');
-})->add($jwtAuth);
+    $group->get('/{id}', function (Request $req, Response $res, array $args) {
+        $userId = (int)$req->getAttribute('user_id');
+        $id     = (int)$args['id'];
+        $card = FlashCard::where('user_id', $userId)->find($id);
+        if (!$card) {
+            $res->getBody()->write(json_encode(['ok'=>false,'error'=>'Not found'], JSON_UNESCAPED_UNICODE));
+            return $res->withStatus(404)->withHeader('Content-Type','application/json');
+        }
+        $res->getBody()->write(json_encode(['ok'=>true,'card'=>$card], JSON_UNESCAPED_UNICODE));
+        return $res->withHeader('Content-Type','application/json');
+    });
 
-$updateCard = function (Request $req, Response $res, array $args) use ($validatorFactory) {
-    $userId = (int)$req->getAttribute('user_id');
-    $id     = (int)$args['id'];
-    $data   = (array)$req->getParsedBody();
+    $group->put('/{id}', function (Request $req, Response $res, array $args) use ($validatorFactory) {
+        $userId = (int)$req->getAttribute('user_id');
+        $id     = (int)$args['id'];
+        $data   = (array)$req->getParsedBody();
 
-    $v = $validatorFactory->make($data, [
-        'front' => 'sometimes|required|string|max:500',
-        'back'  => 'sometimes|required|string|max:500',
-    ]);
-    if ($v->fails()) {
-        $res->getBody()->write(json_encode(['ok'=>false,'errors'=>$v->errors()->toArray()], JSON_UNESCAPED_UNICODE));
-        return $res->withStatus(422)->withHeader('Content-Type','application/json');
-    }
+        $v = $validatorFactory->make($data, [
+            'front' => 'sometimes|required|string|max:500',
+            'back'  => 'sometimes|required|string|max:500',
+        ]);
+        if ($v->fails()) {
+            $res->getBody()->write(json_encode(['ok'=>false,'errors'=>$v->errors()->toArray()], JSON_UNESCAPED_UNICODE));
+            return $res->withStatus(422)->withHeader('Content-Type','application/json');
+        }
 
-    $card = FlashCard::where('user_id', $userId)->find($id);
-    if (!$card) {
-        $res->getBody()->write(json_encode(['ok'=>false,'error'=>'Not found'], JSON_UNESCAPED_UNICODE));
-        return $res->withStatus(404)->withHeader('Content-Type','application/json');
-    }
+        $card = FlashCard::where('user_id', $userId)->find($id);
+        if (!$card) {
+            $res->getBody()->write(json_encode(['ok'=>false,'error'=>'Not found'], JSON_UNESCAPED_UNICODE));
+            return $res->withStatus(404)->withHeader('Content-Type','application/json');
+        }
 
-    $card->fill(array_intersect_key($data, array_flip(['front','back'])));
-    $card->save();
+        $card->fill(array_intersect_key($data, array_flip(['front','back'])));
+        $card->save();
 
-    $res->getBody()->write(json_encode(['ok'=>true,'card'=>$card], JSON_UNESCAPED_UNICODE));
-    return $res->withHeader('Content-Type','application/json');
-};
-$app->put('/api/flash-cards/{id}',  $updateCard)->add($jwtAuth);
-$app->patch('/api/flash-cards/{id}', $updateCard)->add($jwtAuth);
+        $res->getBody()->write(json_encode(['ok'=>true,'card'=>$card], JSON_UNESCAPED_UNICODE));
+        return $res->withHeader('Content-Type','application/json');
+    });
 
-$app->delete('/api/flash-cards/{id}', function (Request $req, Response $res, array $args) {
-    $userId = (int)$req->getAttribute('user_id');
-    $id     = (int)$args['id'];
+    $group->patch('/{id}', function (Request $req, Response $res, array $args) use ($validatorFactory) {
+        $userId = (int)$req->getAttribute('user_id');
+        $id     = (int)$args['id'];
+        $data   = (array)$req->getParsedBody();
 
-    $card = FlashCard::where('user_id', $userId)->find($id);
-    if (!$card) {
-        $res->getBody()->write(json_encode(['ok'=>false,'error'=>'Not found'], JSON_UNESCAPED_UNICODE));
-        return $res->withStatus(404)->withHeader('Content-Type','application/json');
-    }
+        $v = $validatorFactory->make($data, [
+            'front' => 'sometimes|required|string|max:500',
+            'back'  => 'sometimes|required|string|max:500',
+        ]);
+        if ($v->fails()) {
+            $res->getBody()->write(json_encode(['ok'=>false,'errors'=>$v->errors()->toArray()], JSON_UNESCAPED_UNICODE));
+            return $res->withStatus(422)->withHeader('Content-Type','application/json');
+        }
 
-    $card->delete();
-    return $res->withStatus(204);
-})->add($jwtAuth);
+        $card = FlashCard::where('user_id', $userId)->find($id);
+        if (!$card) {
+            $res->getBody()->write(json_encode(['ok'=>false,'error'=>'Not found'], JSON_UNESCAPED_UNICODE));
+            return $res->withStatus(404)->withHeader('Content-Type','application/json');
+        }
 
-$app->post('/api/flash-cards/{id}/restore', function (Request $req, Response $res, array $args) {
-    $userId = (int)$req->getAttribute('user_id');
-    $id     = (int)$args['id'];
+        $card->fill(array_intersect_key($data, array_flip(['front','back'])));
+        $card->save();
 
-    $card = FlashCard::withTrashed()->where('user_id', $userId)->find($id);
-    if (!$card) {
-        $res->getBody()->write(json_encode(['ok'=>false,'error'=>'Not found'], JSON_UNESCAPED_UNICODE));
-        return $res->withStatus(404)->withHeader('Content-Type','application/json');
-    }
+        $res->getBody()->write(json_encode(['ok'=>true,'card'=>$card], JSON_UNESCAPED_UNICODE));
+        return $res->withHeader('Content-Type','application/json');
+    });
 
-    if ($card->trashed()) { $card->restore(); }
+    $group->delete('/{id}', function (Request $req, Response $res, array $args) {
+        $userId = (int)$req->getAttribute('user_id');
+        $id     = (int)$args['id'];
 
-    $res->getBody()->write(json_encode(['ok'=>true,'card'=>$card], JSON_UNESCAPED_UNICODE));
-    return $res->withHeader('Content-Type','application/json');
-})->add($jwtAuth);
+        $card = FlashCard::where('user_id', $userId)->find($id);
+        if (!$card) {
+            $res->getBody()->write(json_encode(['ok'=>false,'error'=>'Not found'], JSON_UNESCAPED_UNICODE));
+            return $res->withStatus(404)->withHeader('Content-Type','application/json');
+        }
 
-/* --- セッション版（既存Web向け） --- */
-$app->post('/login', function (Request $request, Response $response) use ($log) {
-    $parsed = (array)$request->getParsedBody();
-    $email = $parsed['email'] ?? null;
-    $password = $parsed['password'] ?? null;
+        $card->delete();
+        return $res->withStatus(204);
+    });
 
-    if (!$email || !$password) {
-        $response->getBody()->write(json_encode(['ok'=>false,'error'=>'メールアドレスとパスワードを入力してください。'], JSON_UNESCAPED_UNICODE));
-        return $response->withStatus(400)->withHeader('Content-Type','application/json');
-    }
+    $group->post('/{id}/restore', function (Request $req, Response $res, array $args) {
+        $userId = (int)$req->getAttribute('user_id');
+        $id     = (int)$args['id'];
 
-    $user = User::where('email', $email)->first();
-    if (!$user || !password_verify($password, $user->password)) {
-        $response->getBody()->write(json_encode(['ok'=>false,'error'=>'認証に失敗しました。'], JSON_UNESCAPED_UNICODE));
-        return $response->withStatus(401)->withHeader('Content-Type','application/json');
-    }
+        $card = FlashCard::withTrashed()->where('user_id', $userId)->find($id);
+        if (!$card) {
+            $res->getBody()->write(json_encode(['ok'=>false,'error'=>'Not found'], JSON_UNESCAPED_UNICODE));
+            return $res->withStatus(404)->withHeader('Content-Type','application/json');
+        }
 
-    // 固定化対策
-    session_regenerate_id(true);
+        if ($card->trashed()) { $card->restore(); }
 
-    $_SESSION['user_id'] = (int)$user->id;
-    $response->getBody()->write(json_encode(['ok'=>true,'user'=>['id'=>$user->id,'name'=>$user->name,'email'=>$user->email]], JSON_UNESCAPED_UNICODE));
-    return $response->withHeader('Content-Type','application/json');
-});
-
-$app->get('/me', function (Request $req, Response $res) {
-    $userId = (int)$req->getAttribute('user_id');
-    $u = User::find($userId);
-    if (!$u) {
-        $res->getBody()->write(json_encode(['ok'=>false,'error'=>'Not found'], JSON_UNESCAPED_UNICODE));
-        return $res->withStatus(404)->withHeader('Content-Type','application/json');
-    }
-    $res->getBody()->write(json_encode(['ok'=>true,'user'=>['id'=>$u->id,'name'=>$u->name,'email'=>$u->email]], JSON_UNESCAPED_UNICODE));
-    return $res->withHeader('Content-Type','application/json');
-})->add($sessionAuth);
-
-$app->post('/logout', function (Request $req, Response $res) {
-    $_SESSION = [];
-    if (ini_get('session.use_cookies')) {
-        $p = session_get_cookie_params();
-        setcookie(session_name(), '', time() - 42000, $p['path'], $p['domain'], $p['secure'], $p['httponly']);
-    }
-    session_destroy();
-    $res->getBody()->write(json_encode(['ok'=>true], JSON_UNESCAPED_UNICODE));
-    return $res->withHeader('Content-Type','application/json');
-});
+        $res->getBody()->write(json_encode(['ok'=>true,'card'=>$card], JSON_UNESCAPED_UNICODE));
+        return $res->withHeader('Content-Type','application/json');
+    });
+})->add($jwtAuth); // グループ全体にミドルウェアを適用
 
 $app->get('/users', function (Request $request, Response $response) {
     $users = User::orderBy('id')->get();
