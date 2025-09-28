@@ -145,6 +145,11 @@ $app->addErrorMiddleware(
     true,
     true
 );
+$basePath = $_ENV['APP_BASE_PATH'] ?? '';
+if (!empty($basePath)) {
+    $app->setBasePath($basePath);
+}
+
 
 /* =========================
  * 5.5) 認証ミドルウェア
