@@ -9,7 +9,7 @@
         "nesbot/carbon": "^3.10",
         "monolog/monolog": "^3.9",
         "illuminate/database": "^11.0",
-        "illuminate/events": "^11.",
+        "illuminate/events": "^11.46",
         "php-di/php-di": "^7.1",
         "php-di/slim-bridge": "^3.4",
         "illuminate/validation": "^11.46",
