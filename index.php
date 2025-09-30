@@ -149,11 +149,13 @@ $app->addErrorMiddleware(
 // ベースパス設定(XSERVER用)
 $basePath = $_ENV['APP_BASE_PATH'] ?? '';
 
-if (empty($basePath)) {
+if (!empty($basePath)) {
+    $app->setBasePath($basePath);
+} elseif ($_ENV['APP_ENV'] === 'production') {
     header('Content-Type: application/json', true, 500);
     echo json_encode([
         'ok'    => false,
-        'error' => 'APP_BASE_PATH is not set in .env'
+        'error' => 'APP_BASE_PATH is not set in .env (production only)'
     ], JSON_UNESCAPED_UNICODE);
     exit;
 }
@@ -183,6 +185,23 @@ $jwtAuth = function (Request $req, $handler) {
         return $r->withHeader('Content-Type','application/json');
     }
 };
+
+$adminOnly = function (Request $req, $handler) {
+    $userId = (int)$req->getAttribute('user_id');
+    $user = User::find($userId);
+
+    if (!$user || !$user->is_admin) {
+        $res = new \Slim\Psr7\Response(403);
+        $res->getBody()->write(json_encode([
+            'ok' => false,
+            'error' => 'Admin access only'
+        ], JSON_UNESCAPED_UNICODE));
+        return $res->withHeader('Content-Type', 'application/json');
+    }
+
+    return $handler->handle($req);
+};
+
 
 /* =========================
  * 6) ルート定義
@@ -417,8 +436,8 @@ $app->group('/api/flash-cards', function (\Slim\Routing\RouteCollectorProxy $gro
 $app->get('/users', function (Request $request, Response $response) {
     $users = User::orderBy('id')->get();
     $response->getBody()->write($users->toJson(JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    return $response->withHeader('Content-Type','application/json');
-});
+    return $response->withHeader('Content-Type', 'application/json');
+})->add($adminOnly)->add($jwtAuth);
 
 /* --- ヘルスチェック --- */
 $app->get('/health', function (Request $req, Response $res) {
