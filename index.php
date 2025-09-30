@@ -183,6 +183,54 @@ $app->get('/', function (Request $request, Response $response) use ($log) {
     return $response;
 });
 
+/**
+ * --- ユーザー登録 ---
+ * POST /auth/register
+    * {     "name": "ユーザー名",
+    *       "email": "メールアドレス",
+    *       "password": "パスワード" }
+    * => 201 Created
+    * { "ok": true,
+    *   "access_token": "xxxx", "token_type": "Bearer", "expires_in": 900,
+    *   "user": { "id": 1, "name": "ユーザー名", "email": "メールアドレス" } }
+    * => 422 Unprocessable Entity
+    * { "ok": false, "errors": { "email": ["The email has already been taken."] } } 
+ */             
+$app->post('/auth/register', function (Request $request, Response $response) use ($validatorFactory) {
+    $data = (array)$request->getParsedBody();
+
+    // バリデーション定義
+    $v = $validatorFactory->make($data, [
+        'name'     => 'required|string|max:255',
+        'email'    => 'required|email|unique:users,email',
+        'password' => 'required|string|min:6|max:255',
+    ]);
+
+    if ($v->fails()) {
+        $response->getBody()->write(json_encode(['ok' => false, 'errors' => $v->errors()->toArray()], JSON_UNESCAPED_UNICODE));
+        return $response->withStatus(422)->withHeader('Content-Type', 'application/json');
+    }
+
+    // パスワードをハッシュしてユーザー作成
+    $user = User::create([
+        'name'     => $data['name'],
+        'email'    => $data['email'],
+        'password' => password_hash($data['password'], PASSWORD_DEFAULT),
+    ]);
+
+    $token = makeAccessToken($user);
+
+    $response->getBody()->write(json_encode([
+        'ok'           => true,
+        'access_token' => $token,
+        'token_type'   => 'Bearer',
+        'expires_in'   => (int)($_ENV['ACCESS_TOKEN_TTL'] ?? 900),
+        'user'         => ['id'=>$user->id, 'name'=>$user->name, 'email'=>$user->email],
+    ], JSON_UNESCAPED_UNICODE));
+    return $response->withStatus(201)->withHeader('Content-Type', 'application/json');
+});
+
+
 /* --- JWT 認証系 --- */
 $app->post('/auth/login', function (Request $request, Response $response) {
     $data = (array)$request->getParsedBody();
