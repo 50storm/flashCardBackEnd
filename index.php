@@ -145,10 +145,20 @@ $app->addErrorMiddleware(
     true,
     true
 );
+
+// ベースパス設定(XSERVER用)
 $basePath = $_ENV['APP_BASE_PATH'] ?? '';
-if (!empty($basePath)) {
-    $app->setBasePath($basePath);
+
+if (empty($basePath)) {
+    header('Content-Type: application/json', true, 500);
+    echo json_encode([
+        'ok'    => false,
+        'error' => 'APP_BASE_PATH is not set in .env'
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
 }
+
+$app->setBasePath($basePath);
 
 
 /* =========================
