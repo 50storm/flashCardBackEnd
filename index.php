@@ -11,6 +11,7 @@ use Dotenv\Dotenv;
 use Carbon\Carbon;
 use App\Models\User;
 use App\Models\FlashCard;
+use App\Controllers\FlashCardController;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -24,6 +25,7 @@ use Illuminate\Validation\DatabasePresenceVerifier;
 use Illuminate\Database\Schema\Blueprint;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
+use DI\Container;
 
 require __DIR__ . '/vendor/autoload.php';
 
@@ -119,6 +121,10 @@ if (!Capsule::schema()->hasTable('flash_cards')) {
 /* =========================
  * 3) Slim アプリ作成
  * ========================= */
+// 追加（AppFactoryより前に）
+$container = new Container();
+$container->set(ValidatorFactory::class, fn() => $validatorFactory);
+AppFactory::setContainer($container);
 $app = AppFactory::create();
 
 /* =========================
@@ -303,135 +309,145 @@ $app->get('/api/me', function (Request $req, Response $res) {
 })->add($jwtAuth);
 
 /* --- JWT版 FlashCards --- */
-$app->group('/api/flash-cards', function (\Slim\Routing\RouteCollectorProxy $group) use ($validatorFactory) {
-    $group->get('', function (Request $req, Response $res) {
-        $userId = (int)$req->getAttribute('user_id');
-        $cards = FlashCard::where('user_id', $userId)->orderByDesc('id')->get();
-        $res->getBody()->write($cards->toJson(JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-        return $res->withHeader('Content-Type','application/json');
-    });
+$app->group('/api/flash-cards', function (\Slim\Routing\RouteCollectorProxy $group) {
+    $group->get('', FlashCardController::class . ':index');
+    $group->post('', FlashCardController::class . ':store');
+    $group->get('/{id}', FlashCardController::class . ':show');
+    $group->put('/{id}', FlashCardController::class . ':update');
+    $group->patch('/{id}', FlashCardController::class . ':update');
+    $group->delete('/{id}', FlashCardController::class . ':delete');
+    $group->post('/{id}/restore', FlashCardController::class . ':restore');
+})->add($jwtAuth);
 
-    $group->post('', function (Request $req, Response $res) use ($validatorFactory) {
-        $userId = (int)$req->getAttribute('user_id');
-        $data   = (array)$req->getParsedBody();
+// $app->group('/api/flash-cards', function (\Slim\Routing\RouteCollectorProxy $group) use ($validatorFactory) {
+//     $group->get('', function (Request $req, Response $res) {
+//         $userId = (int)$req->getAttribute('user_id');
+//         $cards = FlashCard::where('user_id', $userId)->orderByDesc('id')->get();
+//         $res->getBody()->write($cards->toJson(JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+//         return $res->withHeader('Content-Type','application/json');
+//     });
 
-        $v = $validatorFactory->make($data, [
-            'front' => 'required|string|max:500',
-            'back'  => 'required|string|max:500',
-        ]);
-        if ($v->fails()) {
-            $res->getBody()->write(json_encode(['ok'=>false,'errors'=>$v->errors()->toArray()], JSON_UNESCAPED_UNICODE));
-            return $res->withStatus(422)->withHeader('Content-Type','application/json');
-        }
+//     $group->post('', function (Request $req, Response $res) use ($validatorFactory) {
+//         $userId = (int)$req->getAttribute('user_id');
+//         $data   = (array)$req->getParsedBody();
 
-        $card = FlashCard::create([
-            'user_id' => $userId,
-            'front'   => $data['front'],
-            'back'    => $data['back'],
-        ]);
+//         $v = $validatorFactory->make($data, [
+//             'front' => 'required|string|max:500',
+//             'back'  => 'required|string|max:500',
+//         ]);
+//         if ($v->fails()) {
+//             $res->getBody()->write(json_encode(['ok'=>false,'errors'=>$v->errors()->toArray()], JSON_UNESCAPED_UNICODE));
+//             return $res->withStatus(422)->withHeader('Content-Type','application/json');
+//         }
 
-        $res->getBody()->write(json_encode(['ok'=>true,'card'=>$card], JSON_UNESCAPED_UNICODE));
-        return $res->withStatus(201)
-                ->withHeader('Content-Type','application/json')
-                ->withHeader('Location', "/api/flash-cards/{$card->id}");
-    });
+//         $card = FlashCard::create([
+//             'user_id' => $userId,
+//             'front'   => $data['front'],
+//             'back'    => $data['back'],
+//         ]);
 
-    $group->get('/{id}', function (Request $req, Response $res, array $args) {
-        $userId = (int)$req->getAttribute('user_id');
-        $id     = (int)$args['id'];
-        $card = FlashCard::where('user_id', $userId)->find($id);
-        if (!$card) {
-            $res->getBody()->write(json_encode(['ok'=>false,'error'=>'Not found'], JSON_UNESCAPED_UNICODE));
-            return $res->withStatus(404)->withHeader('Content-Type','application/json');
-        }
-        $res->getBody()->write(json_encode(['ok'=>true,'card'=>$card], JSON_UNESCAPED_UNICODE));
-        return $res->withHeader('Content-Type','application/json');
-    });
+//         $res->getBody()->write(json_encode(['ok'=>true,'card'=>$card], JSON_UNESCAPED_UNICODE));
+//         return $res->withStatus(201)
+//                 ->withHeader('Content-Type','application/json')
+//                 ->withHeader('Location', "/api/flash-cards/{$card->id}");
+//     });
 
-    $group->put('/{id}', function (Request $req, Response $res, array $args) use ($validatorFactory) {
-        $userId = (int)$req->getAttribute('user_id');
-        $id     = (int)$args['id'];
-        $data   = (array)$req->getParsedBody();
+//     $group->get('/{id}', function (Request $req, Response $res, array $args) {
+//         $userId = (int)$req->getAttribute('user_id');
+//         $id     = (int)$args['id'];
+//         $card = FlashCard::where('user_id', $userId)->find($id);
+//         if (!$card) {
+//             $res->getBody()->write(json_encode(['ok'=>false,'error'=>'Not found'], JSON_UNESCAPED_UNICODE));
+//             return $res->withStatus(404)->withHeader('Content-Type','application/json');
+//         }
+//         $res->getBody()->write(json_encode(['ok'=>true,'card'=>$card], JSON_UNESCAPED_UNICODE));
+//         return $res->withHeader('Content-Type','application/json');
+//     });
 
-        $v = $validatorFactory->make($data, [
-            'front' => 'sometimes|required|string|max:500',
-            'back'  => 'sometimes|required|string|max:500',
-        ]);
-        if ($v->fails()) {
-            $res->getBody()->write(json_encode(['ok'=>false,'errors'=>$v->errors()->toArray()], JSON_UNESCAPED_UNICODE));
-            return $res->withStatus(422)->withHeader('Content-Type','application/json');
-        }
+//     $group->put('/{id}', function (Request $req, Response $res, array $args) use ($validatorFactory) {
+//         $userId = (int)$req->getAttribute('user_id');
+//         $id     = (int)$args['id'];
+//         $data   = (array)$req->getParsedBody();
 
-        $card = FlashCard::where('user_id', $userId)->find($id);
-        if (!$card) {
-            $res->getBody()->write(json_encode(['ok'=>false,'error'=>'Not found'], JSON_UNESCAPED_UNICODE));
-            return $res->withStatus(404)->withHeader('Content-Type','application/json');
-        }
+//         $v = $validatorFactory->make($data, [
+//             'front' => 'sometimes|required|string|max:500',
+//             'back'  => 'sometimes|required|string|max:500',
+//         ]);
+//         if ($v->fails()) {
+//             $res->getBody()->write(json_encode(['ok'=>false,'errors'=>$v->errors()->toArray()], JSON_UNESCAPED_UNICODE));
+//             return $res->withStatus(422)->withHeader('Content-Type','application/json');
+//         }
 
-        $card->fill(array_intersect_key($data, array_flip(['front','back'])));
-        $card->save();
+//         $card = FlashCard::where('user_id', $userId)->find($id);
+//         if (!$card) {
+//             $res->getBody()->write(json_encode(['ok'=>false,'error'=>'Not found'], JSON_UNESCAPED_UNICODE));
+//             return $res->withStatus(404)->withHeader('Content-Type','application/json');
+//         }
 
-        $res->getBody()->write(json_encode(['ok'=>true,'card'=>$card], JSON_UNESCAPED_UNICODE));
-        return $res->withHeader('Content-Type','application/json');
-    });
+//         $card->fill(array_intersect_key($data, array_flip(['front','back'])));
+//         $card->save();
 
-    $group->patch('/{id}', function (Request $req, Response $res, array $args) use ($validatorFactory) {
-        $userId = (int)$req->getAttribute('user_id');
-        $id     = (int)$args['id'];
-        $data   = (array)$req->getParsedBody();
+//         $res->getBody()->write(json_encode(['ok'=>true,'card'=>$card], JSON_UNESCAPED_UNICODE));
+//         return $res->withHeader('Content-Type','application/json');
+//     });
 
-        $v = $validatorFactory->make($data, [
-            'front' => 'sometimes|required|string|max:500',
-            'back'  => 'sometimes|required|string|max:500',
-        ]);
-        if ($v->fails()) {
-            $res->getBody()->write(json_encode(['ok'=>false,'errors'=>$v->errors()->toArray()], JSON_UNESCAPED_UNICODE));
-            return $res->withStatus(422)->withHeader('Content-Type','application/json');
-        }
+//     $group->patch('/{id}', function (Request $req, Response $res, array $args) use ($validatorFactory) {
+//         $userId = (int)$req->getAttribute('user_id');
+//         $id     = (int)$args['id'];
+//         $data   = (array)$req->getParsedBody();
 
-        $card = FlashCard::where('user_id', $userId)->find($id);
-        if (!$card) {
-            $res->getBody()->write(json_encode(['ok'=>false,'error'=>'Not found'], JSON_UNESCAPED_UNICODE));
-            return $res->withStatus(404)->withHeader('Content-Type','application/json');
-        }
+//         $v = $validatorFactory->make($data, [
+//             'front' => 'sometimes|required|string|max:500',
+//             'back'  => 'sometimes|required|string|max:500',
+//         ]);
+//         if ($v->fails()) {
+//             $res->getBody()->write(json_encode(['ok'=>false,'errors'=>$v->errors()->toArray()], JSON_UNESCAPED_UNICODE));
+//             return $res->withStatus(422)->withHeader('Content-Type','application/json');
+//         }
 
-        $card->fill(array_intersect_key($data, array_flip(['front','back'])));
-        $card->save();
+//         $card = FlashCard::where('user_id', $userId)->find($id);
+//         if (!$card) {
+//             $res->getBody()->write(json_encode(['ok'=>false,'error'=>'Not found'], JSON_UNESCAPED_UNICODE));
+//             return $res->withStatus(404)->withHeader('Content-Type','application/json');
+//         }
 
-        $res->getBody()->write(json_encode(['ok'=>true,'card'=>$card], JSON_UNESCAPED_UNICODE));
-        return $res->withHeader('Content-Type','application/json');
-    });
+//         $card->fill(array_intersect_key($data, array_flip(['front','back'])));
+//         $card->save();
 
-    $group->delete('/{id}', function (Request $req, Response $res, array $args) {
-        $userId = (int)$req->getAttribute('user_id');
-        $id     = (int)$args['id'];
+//         $res->getBody()->write(json_encode(['ok'=>true,'card'=>$card], JSON_UNESCAPED_UNICODE));
+//         return $res->withHeader('Content-Type','application/json');
+//     });
 
-        $card = FlashCard::where('user_id', $userId)->find($id);
-        if (!$card) {
-            $res->getBody()->write(json_encode(['ok'=>false,'error'=>'Not found'], JSON_UNESCAPED_UNICODE));
-            return $res->withStatus(404)->withHeader('Content-Type','application/json');
-        }
+//     $group->delete('/{id}', function (Request $req, Response $res, array $args) {
+//         $userId = (int)$req->getAttribute('user_id');
+//         $id     = (int)$args['id'];
 
-        $card->delete();
-        return $res->withStatus(204);
-    });
+//         $card = FlashCard::where('user_id', $userId)->find($id);
+//         if (!$card) {
+//             $res->getBody()->write(json_encode(['ok'=>false,'error'=>'Not found'], JSON_UNESCAPED_UNICODE));
+//             return $res->withStatus(404)->withHeader('Content-Type','application/json');
+//         }
 
-    $group->post('/{id}/restore', function (Request $req, Response $res, array $args) {
-        $userId = (int)$req->getAttribute('user_id');
-        $id     = (int)$args['id'];
+//         $card->delete();
+//         return $res->withStatus(204);
+//     });
 
-        $card = FlashCard::withTrashed()->where('user_id', $userId)->find($id);
-        if (!$card) {
-            $res->getBody()->write(json_encode(['ok'=>false,'error'=>'Not found'], JSON_UNESCAPED_UNICODE));
-            return $res->withStatus(404)->withHeader('Content-Type','application/json');
-        }
+//     $group->post('/{id}/restore', function (Request $req, Response $res, array $args) {
+//         $userId = (int)$req->getAttribute('user_id');
+//         $id     = (int)$args['id'];
 
-        if ($card->trashed()) { $card->restore(); }
+//         $card = FlashCard::withTrashed()->where('user_id', $userId)->find($id);
+//         if (!$card) {
+//             $res->getBody()->write(json_encode(['ok'=>false,'error'=>'Not found'], JSON_UNESCAPED_UNICODE));
+//             return $res->withStatus(404)->withHeader('Content-Type','application/json');
+//         }
 
-        $res->getBody()->write(json_encode(['ok'=>true,'card'=>$card], JSON_UNESCAPED_UNICODE));
-        return $res->withHeader('Content-Type','application/json');
-    });
-})->add($jwtAuth); // グループ全体にミドルウェアを適用
+//         if ($card->trashed()) { $card->restore(); }
+
+//         $res->getBody()->write(json_encode(['ok'=>true,'card'=>$card], JSON_UNESCAPED_UNICODE));
+//         return $res->withHeader('Content-Type','application/json');
+//     });
+// })->add($jwtAuth); // グループ全体にミドルウェアを適用
 
 $app->get('/users', function (Request $request, Response $response) {
     $users = User::orderBy('id')->get();
