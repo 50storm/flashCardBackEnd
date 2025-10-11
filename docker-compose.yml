@@ -3,8 +3,8 @@ version: '3.9'
 services:
   app:
     build:
-      context: ./docker/php        # Dockerfile のあるディレクトリ
-      dockerfile: Dockerfile       # ← 明示的に指定
+      context: . # プロジェクトルートがビルド範囲
+      dockerfile: ./docker/php/Dockerfile
     container_name: php-app
     ports:
       - "8080:80"                  # PHP/Apache → http://localhost:8080

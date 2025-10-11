@@ -32,7 +32,8 @@ ENV LANG=ja_JP.UTF-8 \
 RUN a2enmod rewrite headers
 
 # .htaccess を有効化する設定ファイルをコピーして反映
-COPY apache/override.conf /etc/apache2/conf-available/override.conf
+# COPY apache/override.conf /etc/apache2/conf-available/override.conf
+COPY ./docker/php/apache/override.conf /etc/apache2/conf-available/override.conf
 RUN a2enconf override
 
 # --- PHPのタイムゾーンを東京に設定 ---
@@ -52,3 +53,13 @@ COPY . /var/www/html
 
 # パーミッション（必要に応じて）
 RUN chown -R www-data:www-data /var/www/html
+
+# .htaccess を有効にするため、ServerName を localhost に設定
+RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
+
+# DocumentRootやmod_rewriteを設定するならその後
+RUN a2enmod rewrite
+
+# 環境に応じて .htaccess をコピー
+ARG APP_ENV=local
+COPY ./.htaccess.${APP_ENV} /var/www/html/.htaccess
