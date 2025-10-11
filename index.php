@@ -70,7 +70,9 @@ $appName = $_ENV['APP_NAME'] ?? 'NoName';
 $nowText = Carbon::now()->toDateTimeString();
 
 $log = new Logger('flashcard');
-$log->pushHandler(new StreamHandler('php://stdout', Logger::DEBUG));
+// $log->pushHandler(new StreamHandler('php://stdout', Logger::DEBUG));
+// logs ディレクトリがなければ作成しておく
+$log->pushHandler(new StreamHandler(__DIR__ . '/logs/debug.log', Logger::DEBUG));
 $log->info('App loaded', ['app' => $appName, 'time' => $nowText]);
 
 /* =========================
@@ -218,6 +220,18 @@ $app->get('/', function (Request $request, Response $response) use ($log) {
     return $response;
 });
 
+$app->get('/test', function ($req, $res) use ($log) {
+    $log->info('✅ /test reached!');
+    $res->getBody()->write('Hello from Slim!');
+    return $res;
+});
+$app->get('/auth/test', function ($req, $res) use ($log) {
+    $log->info('✅ /auth/test reached!');
+    $res->getBody()->write('Hello from Slim!');
+    return $res;
+});
+
+
 /**
  * --- ユーザー登録 ---
  * POST /auth/register
@@ -267,12 +281,22 @@ $app->post('/auth/register', function (Request $request, Response $response) use
 
 
 /* --- JWT 認証系 --- */
-$app->post('/auth/login', function (Request $request, Response $response) {
+$app->post('/auth/login', function (Request $request, Response $response) use ($log) {
+        // --- ここ追加 ---
+    $log->info('🔥 Reached /auth/login route');
+    $raw = $request->getBody()->getContents();
+    $log->info('RAW BODY', ['body' => $raw]);
+    
     $data = (array)$request->getParsedBody();
+
+    $data = json_decode($raw, true);
+    $log->info('PARSED BODY', ['data' => $data]);
+
     $email = $data['email'] ?? null;
     $password = $data['password'] ?? null;
 
     if (!$email || !$password) {
+        $log->warning('Missing email or password', ['email' => $email, 'password' => $password]);
         $response->getBody()->write(json_encode(['ok'=>false,'error'=>'メールとパスワード必須'], JSON_UNESCAPED_UNICODE));
         return $response->withStatus(400)->withHeader('Content-Type','application/json');
     }
@@ -342,3 +366,9 @@ $app->get('/health', function (Request $req, Response $res) {
  * 7) 実行
  * ========================= */
 $app->run();
+$routes = $app->getRouteCollector()->getRoutes();
+foreach ($routes as $r) {
+    $pattern = $r->getPattern();
+    $methods = $r->getMethods();
+    $log->info("[ROUTE] {$pattern} " . implode(',', $methods));
+}
