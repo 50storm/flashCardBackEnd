@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Controllers;
 
 use App\Models\FlashCard;
@@ -8,9 +9,9 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 
 /**
  * 🎴 FlashCardController
- * 
+ *
  * ユーザーごとのフラッシュカード（単語帳）を操作するためのRESTfulコントローラ。
- * 
+ *
  * 利用ライブラリ:
  * - Eloquent ORM (App\Models\FlashCard)
  * - Illuminate\Validation\Validator
@@ -30,7 +31,7 @@ class FlashCardController
     /**
      * 📄 index()
      * GET /api/flash-cards
-     * 
+     *
      * ログイン中ユーザーのカード一覧を新しい順に返す。
      */
     public function index(Request $req, Response $res): Response
@@ -48,7 +49,7 @@ class FlashCardController
     /**
      * ➕ store()
      * POST /api/flash-cards
-     * 
+     *
      * 新しいカードを登録。
      * 必須フィールド: front, back
      */
@@ -89,7 +90,7 @@ class FlashCardController
     /**
      * 👁 show()
      * GET /api/flash-cards/{id}
-     * 
+     *
      * 特定のカードを取得。
      */
     public function show(Request $req, Response $res, array $args): Response
@@ -112,7 +113,7 @@ class FlashCardController
     /**
      * ✏️ update()
      * PUT /api/flash-cards/{id}
-     * 
+     *
      * カード内容を部分的に更新。
      */
     public function update(Request $req, Response $res, array $args): Response
@@ -128,7 +129,13 @@ class FlashCardController
         ]);
 
         if ($v->fails()) {
-            $res->getBody()->write(json_encode(['ok' => false, 'errors' => $v->errors()->toArray()], JSON_UNESCAPED_UNICODE));
+            $res->getBody()->write(json_encode(
+                [
+                    'ok' => false,
+                    'errors' => $v->errors()->toArray()
+                ],
+                JSON_UNESCAPED_UNICODE
+            ));
             return $res->withStatus(422)->withHeader('Content-Type', 'application/json');
         }
 
@@ -149,7 +156,7 @@ class FlashCardController
     /**
      * ❌ delete()
      * DELETE /api/flash-cards/{id}
-     * 
+     *
      * ソフトデリート（論理削除）を実行。
      */
     public function delete(Request $req, Response $res, array $args): Response
@@ -170,7 +177,7 @@ class FlashCardController
     /**
      * ♻️ restore()
      * PUT /api/flash-cards/{id}/restore
-     * 
+     *
      * ソフトデリートされたカードを復元。
      */
     public function restore(Request $req, Response $res, array $args): Response

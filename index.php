@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 ini_set('display_errors', '1');
@@ -33,7 +34,8 @@ require __DIR__ . '/vendor/autoload.php';
 /* =========================
  * JWT: アクセストークン生成
  * ========================= */
-function makeAccessToken(object $user): string {
+function makeAccessToken(object $user): string
+{
     $now = time();
     $ttl = (int)($_ENV['ACCESS_TOKEN_TTL'] ?? 900);
     $payload = [
@@ -79,7 +81,7 @@ $log->info('App loaded', ['app' => $appName, 'time' => $nowText]);
 /* =========================
  * 2.5) DB接続 (Eloquent)
  * ========================= */
-$capsule = new Capsule;
+$capsule = new Capsule();
 $capsule->addConnection([
     'driver'    => 'mysql',
     'host'      => $_ENV['DB_HOST'] ?? 'db',
@@ -179,19 +181,23 @@ $jwtAuth = function (Request $req, $handler) {
     $auth = $req->getHeaderLine('Authorization');
     if (!preg_match('/Bearer\s+(.+)/i', $auth, $m)) {
         $r = new \Slim\Psr7\Response(401);
-        $r->getBody()->write(json_encode(['ok'=>false,'error'=>'Missing bearer token'], JSON_UNESCAPED_UNICODE));
-        return $r->withHeader('Content-Type','application/json');
+        $r->getBody()->write(json_encode(['ok' => false,'error' => 'Missing bearer token'], JSON_UNESCAPED_UNICODE));
+        return $r->withHeader('Content-Type', 'application/json');
     }
     try {
         $decoded = JWT::decode($m[1], new Key($_ENV['JWT_SECRET'], 'HS256'));
-        if (($decoded->iss ?? null) !== ($_ENV['JWT_ISS'] ?? 'flashcards-api')) throw new \RuntimeException('bad iss');
-        if (($decoded->aud ?? null) !== ($_ENV['JWT_AUD'] ?? 'flashcards-client')) throw new \RuntimeException('bad aud');
+        if (($decoded->iss ?? null) !== ($_ENV['JWT_ISS'] ?? 'flashcards-api')) {
+            throw new \RuntimeException('bad iss');
+        }
+        if (($decoded->aud ?? null) !== ($_ENV['JWT_AUD'] ?? 'flashcards-client')) {
+            throw new \RuntimeException('bad aud');
+        }
         $req = $req->withAttribute('user_id', (int)$decoded->sub);
         return $handler->handle($req);
     } catch (\Throwable $e) {
         $r = new \Slim\Psr7\Response(401);
-        $r->getBody()->write(json_encode(['ok'=>false,'error'=>'Invalid token'], JSON_UNESCAPED_UNICODE));
-        return $r->withHeader('Content-Type','application/json');
+        $r->getBody()->write(json_encode(['ok' => false,'error' => 'Invalid token'], JSON_UNESCAPED_UNICODE));
+        return $r->withHeader('Content-Type', 'application/json');
     }
 };
 
@@ -244,8 +250,8 @@ $app->get('/auth/test', function ($req, $res) use ($log) {
     *   "access_token": "xxxx", "token_type": "Bearer", "expires_in": 900,
     *   "user": { "id": 1, "name": "ユーザー名", "email": "メールアドレス" } }
     * => 422 Unprocessable Entity
-    * { "ok": false, "errors": { "email": ["The email has already been taken."] } } 
- */  
+    * { "ok": false, "errors": { "email": ["The email has already been taken."] } }
+ */
 /* --- 認証系ルートをAuthControllerに委譲 --- */
 $app->post('/auth/register', [AuthController::class, 'register']);
 
@@ -277,11 +283,11 @@ $app->group('/api/flash-cards', function (\Slim\Routing\RouteCollectorProxy $gro
 $app->get('/health', function (Request $req, Response $res) {
     try {
         $now = Capsule::connection()->selectOne('SELECT NOW() AS now');
-        $res->getBody()->write(json_encode(['result'=>true,'db_time'=>$now->now], JSON_UNESCAPED_UNICODE));
-        return $res->withHeader('Content-Type','application/json');
+        $res->getBody()->write(json_encode(['result' => true,'db_time' => $now->now], JSON_UNESCAPED_UNICODE));
+        return $res->withHeader('Content-Type', 'application/json');
     } catch (\Throwable $e) {
-        $res->getBody()->write(json_encode(['result'=>false,'error'=>$e->getMessage()], JSON_UNESCAPED_UNICODE));
-        return $res->withStatus(500)->withHeader('Content-Type','application/json');
+        $res->getBody()->write(json_encode(['result' => false,'error' => $e->getMessage()], JSON_UNESCAPED_UNICODE));
+        return $res->withStatus(500)->withHeader('Content-Type', 'application/json');
     }
 });
 

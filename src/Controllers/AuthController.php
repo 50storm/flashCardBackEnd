@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Controllers;
 
 use App\Models\User;
@@ -8,10 +9,10 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 
 /**
  * 🔐 AuthController
- * 
+ *
  * ユーザー登録とログイン認証を担当するコントローラ。
  * JWT(JSON Web Token) を利用してアクセス制御を行う。
- * 
+ *
  * 使用技術:
  * - Eloquent ORM（Userモデル）
  * - Illuminate\Validation（入力バリデーション）
@@ -30,9 +31,9 @@ class AuthController
 
     /**
      * 🔑 makeAccessToken()
-     * 
+     *
      * 指定ユーザーに対してJWTアクセストークンを生成する。
-     * 
+     *
      * @param User $user 対象ユーザー
      * @return string 署名済みJWTトークン
      */
@@ -56,8 +57,8 @@ class AuthController
 
     /**
      * 🧾 register()
-     * 
-     * POST /api/register  
+     *
+     * POST /api/register
      * ユーザーを新規登録し、すぐにJWTアクセストークンを返す。
      */
     public function register(Request $request, Response $response): Response
@@ -107,8 +108,8 @@ class AuthController
 
     /**
      * 🔓 login()
-     * 
-     * POST /api/login  
+     *
+     * POST /api/login
      * メールアドレスとパスワードで認証し、JWTアクセストークンを発行する。
      */
     public function login(Request $request, Response $response): Response
