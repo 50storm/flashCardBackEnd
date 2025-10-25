@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 ini_set('display_errors', '1');
@@ -10,7 +11,8 @@ use Slim\Factory\AppFactory;
 use Dotenv\Dotenv;
 use Carbon\Carbon;
 use App\Models\User;
-use App\Models\FlashCard;
+use App\Controllers\AuthController;
+use App\Controllers\UserController;
 use App\Controllers\FlashCardController;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
@@ -32,7 +34,8 @@ require __DIR__ . '/vendor/autoload.php';
 /* =========================
  * JWT: アクセストークン生成
  * ========================= */
-function makeAccessToken(object $user): string {
+function makeAccessToken(object $user): string
+{
     $now = time();
     $ttl = (int)($_ENV['ACCESS_TOKEN_TTL'] ?? 900);
     $payload = [
@@ -78,7 +81,7 @@ $log->info('App loaded', ['app' => $appName, 'time' => $nowText]);
 /* =========================
  * 2.5) DB接続 (Eloquent)
  * ========================= */
-$capsule = new Capsule;
+$capsule = new Capsule();
 $capsule->addConnection([
     'driver'    => 'mysql',
     'host'      => $_ENV['DB_HOST'] ?? 'db',
@@ -178,19 +181,23 @@ $jwtAuth = function (Request $req, $handler) {
     $auth = $req->getHeaderLine('Authorization');
     if (!preg_match('/Bearer\s+(.+)/i', $auth, $m)) {
         $r = new \Slim\Psr7\Response(401);
-        $r->getBody()->write(json_encode(['ok'=>false,'error'=>'Missing bearer token'], JSON_UNESCAPED_UNICODE));
-        return $r->withHeader('Content-Type','application/json');
+        $r->getBody()->write(json_encode(['ok' => false,'error' => 'Missing bearer token'], JSON_UNESCAPED_UNICODE));
+        return $r->withHeader('Content-Type', 'application/json');
     }
     try {
         $decoded = JWT::decode($m[1], new Key($_ENV['JWT_SECRET'], 'HS256'));
-        if (($decoded->iss ?? null) !== ($_ENV['JWT_ISS'] ?? 'flashcards-api')) throw new \RuntimeException('bad iss');
-        if (($decoded->aud ?? null) !== ($_ENV['JWT_AUD'] ?? 'flashcards-client')) throw new \RuntimeException('bad aud');
+        if (($decoded->iss ?? null) !== ($_ENV['JWT_ISS'] ?? 'flashcards-api')) {
+            throw new \RuntimeException('bad iss');
+        }
+        if (($decoded->aud ?? null) !== ($_ENV['JWT_AUD'] ?? 'flashcards-client')) {
+            throw new \RuntimeException('bad aud');
+        }
         $req = $req->withAttribute('user_id', (int)$decoded->sub);
         return $handler->handle($req);
     } catch (\Throwable $e) {
         $r = new \Slim\Psr7\Response(401);
-        $r->getBody()->write(json_encode(['ok'=>false,'error'=>'Invalid token'], JSON_UNESCAPED_UNICODE));
-        return $r->withHeader('Content-Type','application/json');
+        $r->getBody()->write(json_encode(['ok' => false,'error' => 'Invalid token'], JSON_UNESCAPED_UNICODE));
+        return $r->withHeader('Content-Type', 'application/json');
     }
 };
 
@@ -243,93 +250,22 @@ $app->get('/auth/test', function ($req, $res) use ($log) {
     *   "access_token": "xxxx", "token_type": "Bearer", "expires_in": 900,
     *   "user": { "id": 1, "name": "ユーザー名", "email": "メールアドレス" } }
     * => 422 Unprocessable Entity
-    * { "ok": false, "errors": { "email": ["The email has already been taken."] } } 
- */             
-$app->post('/auth/register', function (Request $request, Response $response) use ($validatorFactory) {
-    $data = (array)$request->getParsedBody();
-
-    // バリデーション定義
-    $v = $validatorFactory->make($data, [
-        'name'     => 'required|string|max:255',
-        'email'    => 'required|email|unique:users,email',
-        'password' => 'required|string|min:6|max:255',
-    ]);
-
-    if ($v->fails()) {
-        $response->getBody()->write(json_encode(['ok' => false, 'errors' => $v->errors()->toArray()], JSON_UNESCAPED_UNICODE));
-        return $response->withStatus(422)->withHeader('Content-Type', 'application/json');
-    }
-
-    // パスワードをハッシュしてユーザー作成
-    $user = User::create([
-        'name'     => $data['name'],
-        'email'    => $data['email'],
-        'password' => password_hash($data['password'], PASSWORD_DEFAULT),
-    ]);
-
-    $token = makeAccessToken($user);
-
-    $response->getBody()->write(json_encode([
-        'ok'           => true,
-        'access_token' => $token,
-        'token_type'   => 'Bearer',
-        'expires_in'   => (int)($_ENV['ACCESS_TOKEN_TTL'] ?? 900),
-        'user'         => ['id'=>$user->id, 'name'=>$user->name, 'email'=>$user->email],
-    ], JSON_UNESCAPED_UNICODE));
-    return $response->withStatus(201)->withHeader('Content-Type', 'application/json');
-});
-
+    * { "ok": false, "errors": { "email": ["The email has already been taken."] } }
+ */
+/* --- 認証系ルートをAuthControllerに委譲 --- */
+$app->post('/auth/register', [AuthController::class, 'register']);
 
 /* --- JWT 認証系 --- */
-$app->post('/auth/login', function (Request $request, Response $response) use ($log) {
-        // --- ここ追加 ---
-    $log->info('🔥 Reached /auth/login route');
-    $raw = $request->getBody()->getContents();
-    $log->info('RAW BODY', ['body' => $raw]);
-    
-    $data = (array)$request->getParsedBody();
+$app->post('/auth/login', [AuthController::class, 'login']);
 
-    $data = json_decode($raw, true);
-    $log->info('PARSED BODY', ['data' => $data]);
+/* --- ユーザー系ルートをUserControllerに委譲 --- */
+$app->group('/api/users', function ($group) use ($adminOnly) {
+    // 自分の情報
+    $group->get('/me', [UserController::class, 'me']);
+    $group->put('/me', [UserController::class, 'updateMe']);
 
-    $email = $data['email'] ?? null;
-    $password = $data['password'] ?? null;
-
-    if (!$email || !$password) {
-        $log->warning('Missing email or password', ['email' => $email, 'password' => $password]);
-        $response->getBody()->write(json_encode(['ok'=>false,'error'=>'メールとパスワード必須'], JSON_UNESCAPED_UNICODE));
-        return $response->withStatus(400)->withHeader('Content-Type','application/json');
-    }
-
-    $user = User::where('email', $email)->first();
-    if (!$user || !password_verify($password, $user->password)) {
-        $response->getBody()->write(json_encode(['ok'=>false,'error'=>'認証に失敗しました'], JSON_UNESCAPED_UNICODE));
-        return $response->withStatus(401)->withHeader('Content-Type','application/json');
-    }
-
-    $token = makeAccessToken($user);
-
-    $response->getBody()->write(json_encode([
-        'ok'           => true,
-        'access_token' => $token,
-        'token_type'   => 'Bearer',
-        'expires_in'   => (int)($_ENV['ACCESS_TOKEN_TTL'] ?? 900),
-        'user'         => ['id'=>$user->id,'name'=>$user->name,'email'=>$user->email],
-    ], JSON_UNESCAPED_UNICODE));
-    return $response->withHeader('Content-Type','application/json');
-});
-
-$app->get('/api/me', function (Request $req, Response $res) {
-    $userId = (int)$req->getAttribute('user_id');
-    $u = User::find($userId);
-    if (!$u) {
-        $res->getBody()->write(json_encode(['ok'=>false,'error'=>'Not found'], JSON_UNESCAPED_UNICODE));
-        return $res->withStatus(404)->withHeader('Content-Type','application/json');
-    }
-    $res->getBody()->write(json_encode(['ok'=>true,'user'=>[
-        'id'=>$u->id,'name'=>$u->name,'email'=>$u->email
-    ]], JSON_UNESCAPED_UNICODE));
-    return $res->withHeader('Content-Type','application/json');
+    // 管理者専用一覧
+    $group->get('', [UserController::class, 'index'])->add($adminOnly);
 })->add($jwtAuth);
 
 /* --- JWT版 FlashCards --- */
@@ -343,22 +279,15 @@ $app->group('/api/flash-cards', function (\Slim\Routing\RouteCollectorProxy $gro
     $group->post('/{id}/restore', FlashCardController::class . ':restore');
 })->add($jwtAuth);
 
-/* --- 管理者専用: ユーザー一覧 --- */
-$app->get('/users', function (Request $request, Response $response) {
-    $users = User::orderBy('id')->get();
-    $response->getBody()->write($users->toJson(JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    return $response->withHeader('Content-Type', 'application/json');
-})->add($adminOnly)->add($jwtAuth);
-
 /* --- ヘルスチェック --- */
 $app->get('/health', function (Request $req, Response $res) {
     try {
         $now = Capsule::connection()->selectOne('SELECT NOW() AS now');
-        $res->getBody()->write(json_encode(['result'=>true,'db_time'=>$now->now], JSON_UNESCAPED_UNICODE));
-        return $res->withHeader('Content-Type','application/json');
+        $res->getBody()->write(json_encode(['result' => true,'db_time' => $now->now], JSON_UNESCAPED_UNICODE));
+        return $res->withHeader('Content-Type', 'application/json');
     } catch (\Throwable $e) {
-        $res->getBody()->write(json_encode(['result'=>false,'error'=>$e->getMessage()], JSON_UNESCAPED_UNICODE));
-        return $res->withStatus(500)->withHeader('Content-Type','application/json');
+        $res->getBody()->write(json_encode(['result' => false,'error' => $e->getMessage()], JSON_UNESCAPED_UNICODE));
+        return $res->withStatus(500)->withHeader('Content-Type', 'application/json');
     }
 });
 
