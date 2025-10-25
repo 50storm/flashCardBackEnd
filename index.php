@@ -11,6 +11,7 @@ use Dotenv\Dotenv;
 use Carbon\Carbon;
 use App\Models\User;
 use App\Controllers\AuthController;
+use App\Controllers\UserController;
 use App\Controllers\FlashCardController;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
@@ -251,17 +252,14 @@ $app->post('/auth/register', [AuthController::class, 'register']);
 /* --- JWT 認証系 --- */
 $app->post('/auth/login', [AuthController::class, 'login']);
 
-$app->get('/api/me', function (Request $req, Response $res) {
-    $userId = (int)$req->getAttribute('user_id');
-    $u = User::find($userId);
-    if (!$u) {
-        $res->getBody()->write(json_encode(['ok'=>false,'error'=>'Not found'], JSON_UNESCAPED_UNICODE));
-        return $res->withStatus(404)->withHeader('Content-Type','application/json');
-    }
-    $res->getBody()->write(json_encode(['ok'=>true,'user'=>[
-        'id'=>$u->id,'name'=>$u->name,'email'=>$u->email
-    ]], JSON_UNESCAPED_UNICODE));
-    return $res->withHeader('Content-Type','application/json');
+/* --- ユーザー系ルートをUserControllerに委譲 --- */
+$app->group('/api/users', function ($group) use ($adminOnly) {
+    // 自分の情報
+    $group->get('/me', [UserController::class, 'me']);
+    $group->put('/me', [UserController::class, 'updateMe']);
+
+    // 管理者専用一覧
+    $group->get('', [UserController::class, 'index'])->add($adminOnly);
 })->add($jwtAuth);
 
 /* --- JWT版 FlashCards --- */
@@ -274,13 +272,6 @@ $app->group('/api/flash-cards', function (\Slim\Routing\RouteCollectorProxy $gro
     $group->delete('/{id}', FlashCardController::class . ':delete');
     $group->post('/{id}/restore', FlashCardController::class . ':restore');
 })->add($jwtAuth);
-
-/* --- 管理者専用: ユーザー一覧 --- */
-$app->get('/users', function (Request $request, Response $response) {
-    $users = User::orderBy('id')->get();
-    $response->getBody()->write($users->toJson(JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    return $response->withHeader('Content-Type', 'application/json');
-})->add($adminOnly)->add($jwtAuth);
 
 /* --- ヘルスチェック --- */
 $app->get('/health', function (Request $req, Response $res) {
