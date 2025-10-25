@@ -10,7 +10,7 @@ use Slim\Factory\AppFactory;
 use Dotenv\Dotenv;
 use Carbon\Carbon;
 use App\Models\User;
-use App\Models\FlashCard;
+use App\Controllers\AuthController;
 use App\Controllers\FlashCardController;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
@@ -244,80 +244,12 @@ $app->get('/auth/test', function ($req, $res) use ($log) {
     *   "user": { "id": 1, "name": "ユーザー名", "email": "メールアドレス" } }
     * => 422 Unprocessable Entity
     * { "ok": false, "errors": { "email": ["The email has already been taken."] } } 
- */             
-$app->post('/auth/register', function (Request $request, Response $response) use ($validatorFactory) {
-    $data = (array)$request->getParsedBody();
-
-    // バリデーション定義
-    $v = $validatorFactory->make($data, [
-        'name'     => 'required|string|max:255',
-        'email'    => 'required|email|unique:users,email',
-        'password' => 'required|string|min:6|max:255',
-    ]);
-
-    if ($v->fails()) {
-        $response->getBody()->write(json_encode(['ok' => false, 'errors' => $v->errors()->toArray()], JSON_UNESCAPED_UNICODE));
-        return $response->withStatus(422)->withHeader('Content-Type', 'application/json');
-    }
-
-    // パスワードをハッシュしてユーザー作成
-    $user = User::create([
-        'name'     => $data['name'],
-        'email'    => $data['email'],
-        'password' => password_hash($data['password'], PASSWORD_DEFAULT),
-    ]);
-
-    $token = makeAccessToken($user);
-
-    $response->getBody()->write(json_encode([
-        'ok'           => true,
-        'access_token' => $token,
-        'token_type'   => 'Bearer',
-        'expires_in'   => (int)($_ENV['ACCESS_TOKEN_TTL'] ?? 900),
-        'user'         => ['id'=>$user->id, 'name'=>$user->name, 'email'=>$user->email],
-    ], JSON_UNESCAPED_UNICODE));
-    return $response->withStatus(201)->withHeader('Content-Type', 'application/json');
-});
-
+ */  
+/* --- 認証系ルートをAuthControllerに委譲 --- */
+$app->post('/auth/register', [AuthController::class, 'register']);
 
 /* --- JWT 認証系 --- */
-$app->post('/auth/login', function (Request $request, Response $response) use ($log) {
-        // --- ここ追加 ---
-    $log->info('🔥 Reached /auth/login route');
-    $raw = $request->getBody()->getContents();
-    $log->info('RAW BODY', ['body' => $raw]);
-    
-    $data = (array)$request->getParsedBody();
-
-    $data = json_decode($raw, true);
-    $log->info('PARSED BODY', ['data' => $data]);
-
-    $email = $data['email'] ?? null;
-    $password = $data['password'] ?? null;
-
-    if (!$email || !$password) {
-        $log->warning('Missing email or password', ['email' => $email, 'password' => $password]);
-        $response->getBody()->write(json_encode(['ok'=>false,'error'=>'メールとパスワード必須'], JSON_UNESCAPED_UNICODE));
-        return $response->withStatus(400)->withHeader('Content-Type','application/json');
-    }
-
-    $user = User::where('email', $email)->first();
-    if (!$user || !password_verify($password, $user->password)) {
-        $response->getBody()->write(json_encode(['ok'=>false,'error'=>'認証に失敗しました'], JSON_UNESCAPED_UNICODE));
-        return $response->withStatus(401)->withHeader('Content-Type','application/json');
-    }
-
-    $token = makeAccessToken($user);
-
-    $response->getBody()->write(json_encode([
-        'ok'           => true,
-        'access_token' => $token,
-        'token_type'   => 'Bearer',
-        'expires_in'   => (int)($_ENV['ACCESS_TOKEN_TTL'] ?? 900),
-        'user'         => ['id'=>$user->id,'name'=>$user->name,'email'=>$user->email],
-    ], JSON_UNESCAPED_UNICODE));
-    return $response->withHeader('Content-Type','application/json');
-});
+$app->post('/auth/login', [AuthController::class, 'login']);
 
 $app->get('/api/me', function (Request $req, Response $res) {
     $userId = (int)$req->getAttribute('user_id');
