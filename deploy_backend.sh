@@ -1,6 +1,7 @@
 #!/bin/bash
 # ================================
-# 🚀 Deploy Slim PHP backend to Xserver via SFTP (Production Vendor Deployment - TAR version)
+# 🚀 Deploy Slim PHP backend to Xserver via SFTP 
+# (Production Vendor Deployment - TAR + .env + .htaccess)
 # ================================
 
 set -e  # エラーで即停止
@@ -50,23 +51,37 @@ put index.php
 put -r src
 put -r resources
 put vendor_prod.tar.gz
+put .env.prod.backend
+put .htaccess.prod_backend
 bye
 EOF
 
-# === サーバ側でvendor展開 ===
-echo "📦 Extracting vendor_prod.tar.gz on remote server..."
+# === サーバ側で展開・設定反映 ===
+echo "📦 Extracting and setting environment files on remote server..."
 ssh -i "$XSERVER_KEY_PATH" -p "$XSERVER_PORT" -o StrictHostKeyChecking=no "$XSERVER_USER@$XSERVER_HOST" <<EOF
 cd $XSERVER_REMOTE_PATH
+
+# --- vendor展開 ---
+echo "📦 Updating vendor..."
 rm -rf vendor_old vendor
 if [ -d vendor ]; then mv vendor vendor_old; fi
 tar -xzf vendor_prod.tar.gz
 mv vendor_prod vendor
 rm vendor_prod.tar.gz
-echo "✅ Vendor installed on server."
+
+# --- .env更新 ---
+if [ -f .env ]; then mv .env .env.bak; fi
+mv .env.prod.backend .env
+
+# --- .htaccess更新 ---
+if [ -f .htaccess ]; then mv .htaccess .htaccess.bak; fi
+mv .htaccess.prod_backend .htaccess
+
+echo "✅ Vendor, .env, and .htaccess updated successfully!"
 EOF
 
 # === ローカル後処理 ===
 rm -f vendor_prod.tar.gz
 rm -rf vendor_prod
 
-echo "✅ Deployment complete! (vendor_prod → vendor)"
+echo "✅ Deployment complete! (vendor, .env, .htaccess updated)"
