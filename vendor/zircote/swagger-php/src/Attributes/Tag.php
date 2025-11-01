@@ -28,8 +28,7 @@ class Tag extends OA\Tag
                 'name' => $name ?? Generator::UNDEFINED,
                 'description' => $description ?? Generator::UNDEFINED,
                 'x' => $x ?? Generator::UNDEFINED,
-                'attachables' => $attachables ?? Generator::UNDEFINED,
-                'value' => $this->combine($externalDocs),
+                'value' => $this->combine($externalDocs, $attachables),
             ]);
     }
 }

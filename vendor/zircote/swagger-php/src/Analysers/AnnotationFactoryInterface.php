@@ -8,14 +8,16 @@ namespace OpenApi\Analysers;
 
 use OpenApi\Annotations as OA;
 use OpenApi\Context;
-use OpenApi\GeneratorAwareInterface;
+use OpenApi\Generator;
 
-interface AnnotationFactoryInterface extends GeneratorAwareInterface
+interface AnnotationFactoryInterface
 {
     /**
      * Checks if this factory is supported by the current runtime.
      */
     public function isSupported(): bool;
+
+    public function setGenerator(Generator $generator): void;
 
     /**
      * @return array<OA\AbstractAnnotation> top level annotations

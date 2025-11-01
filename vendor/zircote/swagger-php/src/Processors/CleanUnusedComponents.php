@@ -13,11 +13,11 @@ use OpenApi\Generator;
 /**
  * Tracks the use of all <code>Components</code> and removed unused schemas.
  */
-class CleanUnusedComponents
+class CleanUnusedComponents implements ProcessorInterface
 {
     use Concerns\AnnotationTrait;
 
-    protected bool $enabled;
+    protected $enabled = false;
 
     public function __construct(bool $enabled = false)
     {
@@ -39,7 +39,7 @@ class CleanUnusedComponents
         return $this;
     }
 
-    public function __invoke(Analysis $analysis): void
+    public function __invoke(Analysis $analysis)
     {
         if (!$this->enabled || Generator::isDefault($analysis->openapi->components)) {
             return;
@@ -118,6 +118,6 @@ class CleanUnusedComponents
             }
         }
 
-        return [] !== $unusedRefs;
+        return 0 != count($unusedRefs);
     }
 }

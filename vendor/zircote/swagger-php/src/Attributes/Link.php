@@ -40,8 +40,7 @@ class Link extends OA\Link
                 'requestBody' => $requestBody ?? Generator::UNDEFINED,
                 'description' => $description ?? Generator::UNDEFINED,
                 'x' => $x ?? Generator::UNDEFINED,
-                'attachables' => $attachables ?? Generator::UNDEFINED,
-                'value' => $this->combine($server),
+                'value' => $this->combine($server, $attachables),
             ]);
     }
 }

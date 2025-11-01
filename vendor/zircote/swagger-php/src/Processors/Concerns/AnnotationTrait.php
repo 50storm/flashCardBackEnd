@@ -19,7 +19,7 @@ trait AnnotationTrait
     {
         $storage = new \SplObjectStorage();
 
-        $this->traverseAnnotations($root, function ($item) use (&$storage): void {
+        $this->traverseAnnotations($root, function ($item) use (&$storage) {
             if ($item instanceof OA\AbstractAnnotation && !$storage->contains($item)) {
                 $storage->attach($item);
             }
@@ -29,36 +29,36 @@ trait AnnotationTrait
     }
 
     /**
-     * Remove all annotations that are part of the <code>$annotation</code> tree.
+     * Remove all annotations that are part of the `$annotation` tree.
      */
-    public function removeAnnotation(iterable $root, OA\AbstractAnnotation $annotation, bool $recurse = true): void
+    public function removeAnnotation(iterable $root, OA\AbstractAnnotation $annotation): void
     {
         $remove = $this->collectAnnotations($annotation);
-        $this->traverseAnnotations($root, function ($item) use ($remove): void {
+        $this->traverseAnnotations($root, function ($item) use ($remove) {
             if ($item instanceof \SplObjectStorage) {
                 foreach ($remove as $annotation) {
                     $item->detach($annotation);
                 }
             }
-        }, $recurse);
+        });
     }
 
     /**
      * @param string|array|iterable|OA\AbstractAnnotation $root
      */
-    public function traverseAnnotations($root, callable $callable, bool $recurse = true): void
+    public function traverseAnnotations($root, callable $callable): void
     {
         $callable($root);
 
-        if (is_iterable($root) && $recurse) {
+        if (is_iterable($root)) {
             foreach ($root as $value) {
-                $this->traverseAnnotations($value, $callable, $recurse);
+                $this->traverseAnnotations($value, $callable);
             }
         } elseif ($root instanceof OA\AbstractAnnotation) {
             foreach (array_merge($root::$_nested, ['allOf', 'anyOf', 'oneOf', 'callbacks']) as $properties) {
                 foreach ((array) $properties as $property) {
                     if (isset($root->{$property})) {
-                        $this->traverseAnnotations($root->{$property}, $callable, $recurse);
+                        $this->traverseAnnotations($root->{$property}, $callable);
                     }
                 }
             }

@@ -46,8 +46,7 @@ class Webhook extends OA\Webhook
             'summary' => $summary ?? Generator::UNDEFINED,
             'description' => $description ?? Generator::UNDEFINED,
             'x' => $x ?? Generator::UNDEFINED,
-            'attachables' => $attachables ?? Generator::UNDEFINED,
-            'value' => $this->combine($get, $put, $post, $delete, $options, $head, $patch, $trace, $servers, $parameters),
+            'value' => $this->combine($get, $put, $post, $delete, $options, $head, $patch, $trace, $servers, $parameters, $attachables),
         ]);
     }
 }

@@ -36,7 +36,9 @@ class Examples extends OA\Examples
             'externalValue' => $externalValue ?? Generator::UNDEFINED,
             'ref' => $ref ?? Generator::UNDEFINED,
             'x' => $x ?? Generator::UNDEFINED,
-            'attachables' => $attachables ?? Generator::UNDEFINED,
         ]);
+        if ($attachables) {
+            $this->merge($attachables);
+        }
     }
 }

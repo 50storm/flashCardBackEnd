@@ -10,11 +10,11 @@ use OpenApi\Generator;
 use OpenApi\Annotations as OA;
 
 /**
- * Base class for <code>@OA\Get</code>,  <code>@OA\Post</code>,  <code>@OA\Put</code>,  etc.
+ * Base class for `@OA\Get`,  `@OA\Post`,  `@OA\Put`,  etc.
  *
  * Describes a single API operation on a path.
  *
- * @see [Operation Object](https://spec.openapis.org/oas/v3.1.1.html#operation-object)
+ * @see [OAI Operation Object](https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md#operation-object)
  *
  * @Annotation
  */
@@ -214,7 +214,7 @@ abstract class Operation extends AbstractAnnotation
     /**
      * @inheritdoc
      */
-    public function validate(array $stack = [], array $skip = [], string $ref = '', ?object $context = null): bool
+    public function validate(array $stack = [], array $skip = [], string $ref = '', $context = null): bool
     {
         if (in_array($this, $skip, true)) {
             return true;
@@ -224,7 +224,7 @@ abstract class Operation extends AbstractAnnotation
 
         if (!Generator::isDefault($this->responses)) {
             foreach ($this->responses as $response) {
-                if (!Generator::isDefault($response->response) && $response->response !== 'default' && preg_match('/^([12345]{1}\d{2})|([12345]{1}XX)$/', (string) $response->response) === 0) {
+                if (!Generator::isDefault($response->response) && $response->response !== 'default' && preg_match('/^([12345]{1}[0-9]{2})|([12345]{1}XX)$/', (string) $response->response) === 0) {
                     $this->_context->logger->warning('Invalid value "' . $response->response . '" for ' . $response->_identity([]) . '->response, expecting "default", a HTTP Status Code or HTTP Status Code range definition in ' . $response->_context);
                     $valid = false;
                 }

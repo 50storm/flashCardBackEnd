@@ -13,7 +13,7 @@ use OpenApi\Generator;
 /**
  * Describes a single request body.
  *
- * @see [Request Body Object](https://spec.openapis.org/oas/v3.1.1.html#request-body-object)
+ * @see [OAI Request Body Object](https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md#requestBodyObject)
  *
  * @Annotation
  */
@@ -22,7 +22,7 @@ class RequestBody extends AbstractAnnotation
     /**
      * The relative or absolute path to a request body.
      *
-     * @see [Reference Object](https://spec.openapis.org/oas/v3.1.1.html#reference-object)
+     * @see [Using refs](https://swagger.io/docs/specification/using-ref/)
      *
      * @var string|class-string|object
      */

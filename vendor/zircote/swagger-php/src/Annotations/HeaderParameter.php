@@ -9,7 +9,7 @@ namespace OpenApi\Annotations;
 use OpenApi\Annotations as OA;
 
 /**
- * A <code>@OA\Request</code> header parameter.
+ * A `@OA\Request` header parameter.
  *
  * @Annotation
  */

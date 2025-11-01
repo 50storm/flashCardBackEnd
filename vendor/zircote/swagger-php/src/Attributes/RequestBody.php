@@ -34,8 +34,7 @@ class RequestBody extends OA\RequestBody
             'description' => $description ?? Generator::UNDEFINED,
             'required' => $required ?? Generator::UNDEFINED,
             'x' => $x ?? Generator::UNDEFINED,
-            'attachables' => $attachables ?? Generator::UNDEFINED,
-            'value' => $this->combine($content),
+            'value' => $this->combine($content, $attachables),
         ]);
     }
 }

@@ -14,9 +14,9 @@ use OpenApi\Generator;
 /**
  * Split XmlContent into Schema and MediaType.
  */
-class MergeXmlContent
+class MergeXmlContent implements ProcessorInterface
 {
-    public function __invoke(Analysis $analysis): void
+    public function __invoke(Analysis $analysis)
     {
         /** @var OA\XmlContent[] $annotations */
         $annotations = $analysis->getAnnotationsOfType(OA\XmlContent::class);

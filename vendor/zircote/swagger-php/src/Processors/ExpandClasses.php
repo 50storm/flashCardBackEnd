@@ -17,11 +17,11 @@ use OpenApi\Generator;
  * - else
  *   => merge ancestor properties into the schema.
  */
-class ExpandClasses
+class ExpandClasses implements ProcessorInterface
 {
     use Concerns\MergePropertiesTrait;
 
-    public function __invoke(Analysis $analysis): void
+    public function __invoke(Analysis $analysis)
     {
         /** @var OA\Schema[] $schemas */
         $schemas = $analysis->getAnnotationsOfType(OA\Schema::class, true);
@@ -33,7 +33,7 @@ class ExpandClasses
                 foreach ($ancestors as $ancestor) {
                     $ancestorSchema = $analysis->getSchemaForSource($ancestor['context']->fullyQualifiedName($ancestor['class']));
                     if ($ancestorSchema) {
-                        $refPath = Generator::isDefault($ancestorSchema->schema) ? $ancestor['class'] : $ancestorSchema->schema;
+                        $refPath = !Generator::isDefault($ancestorSchema->schema) ? $ancestorSchema->schema : $ancestor['class'];
                         $this->inheritFrom($analysis, $schema, $ancestorSchema, $refPath, $ancestor['context']);
 
                         // one ancestor is enough

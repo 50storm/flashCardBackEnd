@@ -11,7 +11,6 @@ use OpenApi\Generator;
 trait ParameterTrait
 {
     /**
-     * @param 'query'|'header'|'path'|'cookie'|null                   $in
      * @param string|class-string|object|null                         $ref
      * @param array<Examples>                                         $examples
      * @param array<MediaType>|JsonContent|XmlContent|Attachable|null $content
@@ -44,9 +43,8 @@ trait ParameterTrait
                 'parameter' => $parameter ?? Generator::UNDEFINED,
                 'name' => $name ?? Generator::UNDEFINED,
                 'description' => $description ?? Generator::UNDEFINED,
-                // next two are special as we override the default value for specific Parameter subclasses
-                'in' => $in ?? (Generator::isDefault($this->in) ? Generator::UNDEFINED : $this->in),
-                'required' => $required ?? (Generator::isDefault($this->required) ? Generator::UNDEFINED : $this->required),
+                'in' => Generator::isDefault($this->in) ? $in : $this->in,
+                'required' => $required ?? Generator::UNDEFINED,
                 'deprecated' => $deprecated ?? Generator::UNDEFINED,
                 'allowEmptyValue' => $allowEmptyValue ?? Generator::UNDEFINED,
                 'ref' => $ref ?? Generator::UNDEFINED,
@@ -57,8 +55,7 @@ trait ParameterTrait
                 'spaceDelimited' => $spaceDelimited ?? Generator::UNDEFINED,
                 'pipeDelimited' => $pipeDelimited ?? Generator::UNDEFINED,
                 'x' => $x ?? Generator::UNDEFINED,
-                'attachables' => $attachables ?? Generator::UNDEFINED,
-                'value' => $this->combine($schema, $examples, $content),
+                'value' => $this->combine($schema, $examples, $content, $attachables),
             ]);
     }
 }

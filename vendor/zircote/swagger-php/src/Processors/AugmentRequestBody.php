@@ -13,9 +13,9 @@ use OpenApi\Generator;
 /**
  * Use the RequestBody context to extract useful information and inject that into the annotation.
  */
-class AugmentRequestBody
+class AugmentRequestBody implements ProcessorInterface
 {
-    public function __invoke(Analysis $analysis): void
+    public function __invoke(Analysis $analysis)
     {
         /** @var array<OA\RequestBody> $requests */
         $requests = $analysis->getAnnotationsOfType(OA\RequestBody::class);

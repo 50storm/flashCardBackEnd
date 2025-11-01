@@ -13,9 +13,9 @@ use OpenApi\Generator;
 /**
  * Generate the OperationId based on the context of the OpenApi annotation.
  */
-class OperationId
+class OperationId implements ProcessorInterface
 {
-    protected bool $hash;
+    protected $hash = true;
 
     public function __construct(bool $hash = true)
     {
@@ -37,7 +37,7 @@ class OperationId
         return $this;
     }
 
-    public function __invoke(Analysis $analysis): void
+    public function __invoke(Analysis $analysis)
     {
         $allOperations = $analysis->getAnnotationsOfType(OA\Operation::class);
 
@@ -57,7 +57,11 @@ class OperationId
                 $operationId = null;
                 if ($source) {
                     $method = $context->method ? ('::' . $context->method) : '';
-                    $operationId = $context->namespace ? $context->namespace . '\\' . $source . $method : $source . $method;
+                    if ($context->namespace) {
+                        $operationId = $context->namespace . '\\' . $source . $method;
+                    } else {
+                        $operationId = $source . $method;
+                    }
                 } elseif ($context->method) {
                     $operationId = $context->method;
                 }

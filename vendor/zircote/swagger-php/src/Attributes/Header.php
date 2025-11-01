@@ -36,8 +36,7 @@ class Header extends OA\Header
             'deprecated' => $deprecated ?? Generator::UNDEFINED,
             'allowEmptyValue' => $allowEmptyValue ?? Generator::UNDEFINED,
             'x' => $x ?? Generator::UNDEFINED,
-            'attachables' => $attachables ?? Generator::UNDEFINED,
-            'value' => $this->combine($schema),
+            'value' => $this->combine($attachables, $schema),
         ]);
     }
 }

@@ -18,6 +18,14 @@ class Pipeline
         $this->pipes = $pipes;
     }
 
+    /**
+     * @deprecated This will be removed in 5.0
+     */
+    public function pipes(): array
+    {
+        return $this->pipes;
+    }
+
     public function add(callable $pipe): Pipeline
     {
         $this->pipes[] = $pipe;
@@ -37,7 +45,9 @@ class Pipeline
         // allow matching on class name in $pipe in a string
         if (is_string($pipe) && !$matcher) {
             $pipeClass = $pipe;
-            $matcher = (fn ($pipe): bool => !$pipe instanceof $pipeClass);
+            $matcher = function ($pipe) use ($pipeClass) {
+                return !$pipe instanceof $pipeClass;
+            };
         }
 
         if ($matcher) {
@@ -64,8 +74,8 @@ class Pipeline
 
     /**
      * @param callable|class-string $matcher used to determine the position to insert
-     *                                       either an <code>int</code> from a callable or, in the case of <code>$matcher</code> being
-     *                                       a <code>class-string</code>, the position before the first pipe of that class
+     *                                       either an `int` from a callable or, in the case of `$matcher` being
+     *                                       a `class-string`, the position before the first pipe of that class
      */
     public function insert(callable $pipe, $matcher): Pipeline
     {

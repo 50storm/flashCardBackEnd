@@ -12,11 +12,11 @@ use OpenApi\Context;
 use OpenApi\Generator;
 
 /**
- * Merge reusable annotation into <code>@OA\Schemas</code>.
+ * Merge reusable annotation into @OA\Schemas.
  */
-class MergeIntoComponents
+class MergeIntoComponents implements ProcessorInterface
 {
-    public function __invoke(Analysis $analysis): void
+    public function __invoke(Analysis $analysis)
     {
         $components = $analysis->openapi->components;
         if (Generator::isDefault($components)) {

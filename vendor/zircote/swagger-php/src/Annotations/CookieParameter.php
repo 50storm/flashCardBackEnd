@@ -7,7 +7,7 @@
 namespace OpenApi\Annotations;
 
 /**
- * A <code>@OA\Request</code> cookie parameter.
+ * A `@OA\Request` cookie parameter.
  *
  * @Annotation
  */

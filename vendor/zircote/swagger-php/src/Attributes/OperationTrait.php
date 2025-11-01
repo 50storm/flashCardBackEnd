@@ -47,8 +47,7 @@ trait OperationTrait
                 'callbacks' => $callbacks ?? Generator::UNDEFINED,
                 'deprecated' => $deprecated ?? Generator::UNDEFINED,
                 'x' => $x ?? Generator::UNDEFINED,
-                'attachables' => $attachables ?? Generator::UNDEFINED,
-                'value' => $this->combine($requestBody, $responses, $parameters, $externalDocs),
+                'value' => $this->combine($requestBody, $responses, $parameters, $externalDocs, $attachables),
             ]);
     }
 }

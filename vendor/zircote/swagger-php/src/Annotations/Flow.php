@@ -9,9 +9,9 @@ namespace OpenApi\Annotations;
 use OpenApi\Generator;
 
 /**
- * Configuration details for a supported OAuth flow.
+ * Configuration details for a supported OAuth Flow.
  *
- * @see [OAuth Flow Object](https://spec.openapis.org/oas/v3.1.1.html#oauth-flow-object)
+ * @see [OAI OAuth Flow Object](https://swagger.io/specification/#oauthFlowObject)
  *
  * @Annotation
  */
@@ -49,7 +49,7 @@ class Flow extends AbstractAnnotation
      *
      * One of ['implicit', 'password', 'authorizationCode', 'clientCredentials'].
      *
-     * @var 'authorizationCode'|'clientCredentials'|'implicit'|'password'
+     * @var string
      */
     public $flow = Generator::UNDEFINED;
 
@@ -97,7 +97,7 @@ class Flow extends AbstractAnnotation
     #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
-        if ($this->scopes === []) {
+        if (is_array($this->scopes) && empty($this->scopes)) {
             $this->scopes = new \stdClass();
         }
 

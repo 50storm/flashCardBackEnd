@@ -12,15 +12,15 @@ use OpenApi\Context;
 use OpenApi\Generator;
 
 /**
- * Merge all <code>@OA\OpenApi</code> annotations into one.
+ * Merge all @OA\OpenApi annotations into one.
  */
-class MergeIntoOpenApi
+class MergeIntoOpenApi implements ProcessorInterface
 {
-    public function __invoke(Analysis $analysis): void
+    public function __invoke(Analysis $analysis)
     {
         // Auto-create the OpenApi annotation.
         if (!$analysis->openapi) {
-            $context = new Context(['generated' => true], $analysis->context);
+            $context = new Context([], $analysis->context);
             $analysis->addAnnotation(new OA\OpenApi(['_context' => $context]), $context);
         }
         $openapi = $analysis->openapi;
@@ -48,6 +48,7 @@ class MergeIntoOpenApi
             } elseif (
                 $annotation instanceof OA\AbstractAnnotation
                 && in_array(OA\OpenApi::class, $annotation::$_parents)
+                && property_exists($annotation, '_context')
                 && false === $annotation->_context->is('nested')) {
                 // A top level annotation.
                 $merge[] = $annotation;

@@ -16,9 +16,9 @@ use OpenApi\Generator;
  *
  * Merges properties.
  */
-class AugmentSchemas
+class AugmentSchemas implements ProcessorInterface
 {
-    public function __invoke(Analysis $analysis): void
+    public function __invoke(Analysis $analysis)
     {
         /** @var OA\Schema[] $schemas */
         $schemas = $analysis->getAnnotationsOfType(OA\Schema::class);
@@ -93,13 +93,13 @@ class AugmentSchemas
     {
         foreach ($schemas as $schema) {
             if (Generator::isDefault($schema->type)) {
-                if (is_array($schema->properties) && $schema->properties !== []) {
+                if (is_array($schema->properties) && count($schema->properties) > 0) {
                     $schema->type = 'object';
-                } elseif (is_array($schema->additionalProperties) && $schema->additionalProperties !== []) {
+                } elseif (is_array($schema->additionalProperties) && count($schema->additionalProperties) > 0) {
                     $schema->type = 'object';
-                } elseif (is_array($schema->patternProperties) && $schema->patternProperties !== []) {
+                } elseif (is_array($schema->patternProperties) && count($schema->patternProperties) > 0) {
                     $schema->type = 'object';
-                } elseif (is_array($schema->propertyNames) && $schema->propertyNames !== []) {
+                } elseif (is_array($schema->propertyNames) && count($schema->propertyNames) > 0) {
                     $schema->type = 'object';
                 }
             } else {
@@ -114,7 +114,7 @@ class AugmentSchemas
     }
 
     /**
-     * Merge schema properties into <code>allOf</code> if both exist.
+     * Merge schema properties into `allOf` if both exist.
      *
      * @param array<OA\Schema> $schemas
      */

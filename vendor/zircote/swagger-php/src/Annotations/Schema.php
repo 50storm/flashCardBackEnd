@@ -16,7 +16,7 @@ use OpenApi\Generator;
  * This object is based on the [JSON Schema Specification](http://json-schema.org) and uses a predefined subset of it.
  * On top of this subset, there are extensions provided by this specification to allow for more complete documentation.
  *
- * @see [Schema Object](https://spec.openapis.org/oas/v3.1.1.html#schema-object)
+ * @see [OAI Schema Object](https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md#schemaObject)
  * @see [JSON Schema](http://json-schema.org/)
  *
  * @Annotation
@@ -26,7 +26,7 @@ class Schema extends AbstractAnnotation
     /**
      * The relative or absolute path to the endpoint.
      *
-     * @see [Reference Object](https://spec.openapis.org/oas/v3.1.1.html#reference-object)
+     * @see [Using refs](https://swagger.io/docs/specification/using-ref/)
      *
      * @var string|class-string|object
      */
@@ -102,9 +102,7 @@ class Schema extends AbstractAnnotation
     public $type = Generator::UNDEFINED;
 
     /**
-     * The extending format for the previously mentioned type.
-     *
-     * @see [Data Types](https://spec.openapis.org/oas/v3.1.1.html#data-types)
+     * The extending format for the previously mentioned type. See Data Type Formats for further details.
      *
      * @var string
      */
@@ -486,7 +484,7 @@ class Schema extends AbstractAnnotation
     {
         $data = parent::jsonSerialize();
 
-        if ($this->_context->isVersion('3.0.x')) {
+        if ($this->_context->isVersion(OpenApi::VERSION_3_0_0)) {
             unset($data->examples);
             if (isset($data->const)) {
                 $data->enum = [$data->const];
@@ -500,7 +498,7 @@ class Schema extends AbstractAnnotation
     /**
      * @inheritdoc
      */
-    public function validate(array $stack = [], array $skip = [], string $ref = '', ?object $context = null): bool
+    public function validate(array $stack = [], array $skip = [], string $ref = '', $context = null): bool
     {
         if ($this->type === 'array' && Generator::isDefault($this->items)) {
             $this->_context->logger->warning('@OA\\Items() is required when ' . $this->identity() . ' has type "array" in ' . $this->_context);
@@ -508,9 +506,9 @@ class Schema extends AbstractAnnotation
             return false;
         }
 
-        if ($this->_context->isVersion('3.0.x')) {
+        if ($this->_context->isVersion(OpenApi::VERSION_3_0_0)) {
             if (!Generator::isDefault($this->examples)) {
-                $this->_context->logger->warning($this->identity() . ' is only allowed for 3.1.x');
+                $this->_context->logger->warning($this->identity() . ' is only allowed for ' . OpenApi::VERSION_3_1_0);
 
                 return false;
             }

@@ -65,9 +65,7 @@ class ComposerStaticInit452c487ea1092bb421129a894d5376b8
             'Psr\\Http\\Message\\' => 17,
             'Psr\\Container\\' => 14,
             'Psr\\Clock\\' => 10,
-            'PhpParser\\' => 10,
             'PhpOption\\' => 10,
-            'PHPStan\\PhpDocParser\\' => 21,
         ),
         'O' => 
         array (
@@ -241,17 +239,9 @@ class ComposerStaticInit452c487ea1092bb421129a894d5376b8
         array (
             0 => __DIR__ . '/..' . '/psr/clock/src',
         ),
-        'PhpParser\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/nikic/php-parser/lib/PhpParser',
-        ),
         'PhpOption\\' => 
         array (
             0 => __DIR__ . '/..' . '/phpoption/phpoption/src/PhpOption',
-        ),
-        'PHPStan\\PhpDocParser\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/phpstan/phpdoc-parser/src',
         ),
         'OpenApi\\' => 
         array (
